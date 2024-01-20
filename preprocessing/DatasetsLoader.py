@@ -2,7 +2,7 @@ import csv
 import json
 
 
-class DatasetLoader:
+class DatasetsLoader:
     def __init__(self):
         pass
 
