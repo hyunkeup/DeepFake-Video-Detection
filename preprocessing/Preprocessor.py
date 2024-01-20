@@ -1,15 +1,11 @@
-import os
-
 import cv2
-import dotenv
 import numpy as np
 
-import FileUtils
+from property import Property
+from utils import FileUtils
 
-dotenv.load_dotenv()
-
-FRAME_SHAPE: tuple = tuple([int(x) for x in os.environ.get("FRAME_SHAPE").split(",")])
-NUM_OF_FRAMES: int = int(os.environ.get("NUM_OF_FRAMES"))
+FRAME_SHAPE: tuple = tuple(Property.get_property("frame_shape"))
+NUM_OF_FRAMES: int = int(Property.get_property("square_of_root_num_of_frames"))
 
 
 class Preprocessor:
@@ -31,6 +27,10 @@ class Preprocessor:
 
     @staticmethod
     def read_video(video_path: str) -> list:
+        """
+        :param video_path: C:\workspace\deepfake-detection-challenge\train_sample_videos\aaa.mp4
+        :return: image frames
+        """
         cap = cv2.VideoCapture(video_path)
         num_of_video_total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         num_of_required_frames = NUM_OF_FRAMES ** 2
@@ -60,6 +60,10 @@ class Preprocessor:
 
     @staticmethod
     def combine_video_frames(video_frames: list):
+        """
+        :param video_frames: the number of frames is there such as 4, 9, 16, 25, ...
+        :return: image frame
+        """
         height, width, _ = video_frames[0].shape
 
         combined_video_frames = np.zeros((height * NUM_OF_FRAMES, width * NUM_OF_FRAMES, FRAME_SHAPE[2]),

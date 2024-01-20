@@ -1,5 +1,3 @@
-import os
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -7,14 +5,15 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from dataset.DfdcDataset import DfdsDataset
+from property import Property
 
-INPUT_FRAME_SHAPE: tuple = tuple([int(x) for x in os.environ.get("INPUT_FRAME_SHAPE").split(",")])
+FRAME_SHAPE: tuple = tuple(Property.get_property("frame_shape"))
 
 
 class SimpleCNN(nn.Module):
     def __init__(self):
         super(SimpleCNN, self).__init__()
-        self.conv1 = nn.Conv2d(INPUT_FRAME_SHAPE[2], INPUT_FRAME_SHAPE[0], kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(FRAME_SHAPE[2], FRAME_SHAPE[0], kernel_size=3, stride=1, padding=1)
         self.relu = nn.ReLU()
         self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.fc = nn.Linear(244 * 122 * 122, 2)  # 예시로 출력 뉴런 수를 2로 지정
@@ -29,7 +28,7 @@ class SimpleCNN(nn.Module):
 
 
 transform = transforms.Compose([
-    transforms.Resize((INPUT_FRAME_SHAPE[0], INPUT_FRAME_SHAPE[1])),
+    transforms.Resize((FRAME_SHAPE[0], FRAME_SHAPE[1])),
     transforms.ToTensor(),
 ])
 
