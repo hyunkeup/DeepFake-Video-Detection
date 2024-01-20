@@ -24,15 +24,34 @@ class DfdcDatasetsLoader(DatasetsLoader):
     def load(self, directory_path: str):
         """
         :param directory_path: C:\workspace\deepfake-detection-challenge
-        :return: train_x and train_y
+        :return: train_y, train_x
         """
         print("=" * 50 + " Loading video datasets from DFDC " + "=" * 50)
+
+        directory_name = os.path.basename(directory_path)
+        frame_info = '_'.join([str(x) for x in list(self.frame_shape)])
+        np_train_y_path = f"{directory_path}/{directory_name}_{frame_info}_train_y.npy"
+        np_train_x_path = f"{directory_path}/{directory_name}_{frame_info}_train_x.npy"
+        if os.path.exists(np_train_x_path) and os.path.exists(np_train_y_path):
+            s_time = time.time()
+            train_y = np.load(np_train_y_path)
+            train_x = np.load(np_train_x_path)
+            e_time = time.time()
+            print(f"* Loading time for .npy: {e_time - s_time} seconds.")
+            print(f"\t* train_y: {train_y.shape}")
+            print(f"\t* train_x: {train_x.shape}")
+            return train_y, train_x
+
         # Read the metadata.json
         s_time = time.time()
         metadata_path = f"{directory_path}/metadata.json"
         metadata = self.read_metadata(metadata_path)
+        train_y = metadata[:, 1]
+        e_time = time.time()
+        print(f"* Loading time for metadata: {e_time - s_time} seconds.")
 
         # Load video
+        s_time = time.time()
         train_x = []
         for (filename, _) in metadata:
             video_path = f"{directory_path}/{filename}"
@@ -40,20 +59,19 @@ class DfdcDatasetsLoader(DatasetsLoader):
             train_x.append(video_frames)
 
         train_x = np.array(train_x)
-        train_y = metadata[:, 1]
         e_time = time.time()
-        print(f"* Loading time for videos and metadata: {e_time - s_time} seconds.")
+        print(f"* Loading time for videos: {e_time - s_time} seconds.")
 
         # Save loaded data
         s_time = time.time()
-        directory_name = os.path.basename(directory_path)
-        frame_info = '_'.join([str(x) for x in list(self.frame_shape)])
-        np.save(f'{directory_name}_{frame_info}_train_x.npy', train_x)
-        np.save(f'{directory_name}_{frame_info}_train_y.npy', train_y)
+        np.save(np_train_y_path, train_y)
+        np.save(np_train_x_path, train_x)
         e_time = time.time()
         print(f"* Saving time for videos: {e_time - s_time} seconds.")
+        print(f"\t* train_y: {train_y.shape}")
+        print(f"\t* train_x: {train_x.shape}")
 
-        return train_x, train_y
+        return train_y, train_x
 
     def read_metadata(self, metadata_path: str) -> ndarray[Any, dtype[Any]]:
         """
