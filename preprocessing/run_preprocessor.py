@@ -13,13 +13,13 @@ PARTITIONED_DIRECTORIES = Property.get_property("partitioned_directories")
 THREAD_POOL_SIZE = Property.get_property("workers_thread_pool_size")
 PREPROCESSED_DIRECTORY = Property.get_property("preprocessed_directory")
 
-preprocessor = Preprocessor()
-
 
 def run(m_data):
     filename_with_extension, label, path = m_data
-    video_frames = preprocessor.read_video(f"{path}/{filename_with_extension}")
-    combined_frame = preprocessor.combine_video_frames(video_frames)
+    # video_frames = Preprocessor.read_video(f"{path}/{filename_with_extension}")
+    video_frames = Preprocessor.read_video_and_extract_face(f"{path}/{filename_with_extension}")
+    combined_frame = Preprocessor.combine_video_frames(video_frames)
+    cv2.imwrite(f"temp_0.jpg", combined_frame)
 
     filename, extension = os.path.splitext(filename_with_extension)
     combined_image_path = f"{PREPROCESSED_DIRECTORY}/{label}/{filename}.jpg"
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     for partitioned_directory in PARTITIONED_DIRECTORIES:
         directory_path = f"{ORIGINAL_HOME_DIRECTORY}/{partitioned_directory}"
         metadata_path = f"{directory_path}/metadata.json"
-        metadata = preprocessor.read_metadata(metadata_path)
+        metadata = Preprocessor.read_metadata(metadata_path)
         jobs.append((directory_path, metadata_path, metadata))
     print("Done")
 
