@@ -56,14 +56,28 @@ python test/test_SimpleCNN.py, test/test_RestNet18.py, or ....
 
 #### SimpleCNN
 
+##### Dataset:
+
+``` 
+Train: train_sample_videos(train_sample_images)
+Test: train_sample_videos(train_sample_images)
 ```
-num_of_epochs: 100, batch_size: 32
-Accuracy: 91.8%
+
+```
+# num_of_epochs: 100, batch_size: 32
+# Accuracy: 91.8%
 ```
 
 #### RestNet18
 
+##### Dataset:
+
 ```
-num_of_epochs: 100, batch_size: 32
-Accuracy: 84.2%
+Train: train_sample_videos(train_sample_images)
+Test: train_sample_videos(train_sample_images)
+```
+
+```
+# num_of_epochs: 100, batch_size: 32
+# Accuracy: 84.2%
 ```
