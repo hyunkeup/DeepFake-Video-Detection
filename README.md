@@ -59,18 +59,12 @@ python test/test_SimpleCNN.py, test/test_RestNet18.py, or ....
 #### Dataset1:
 
 ``` 
-Train: train_sample_videos(train_sample_images_fullscreen)
-Test: train_sample_videos(train_sample_images_fullscreen)
+Train: train_sample_images_with_mediapipe(train_sample_images_with_mediapipe)
+Test: train_sample_images_with_mediapipe(train_sample_images_with_mediapipe)
 ```
 #### Accuracy
+Path: 
 ```
-# num_of_epochs: 100, batch_size: 32
-# Accuracy: 91.8%
-# Path: [SimplCNN_model_20240120_154945.pth](test%2FSimplCNN_model_20240120_154945.pth)
-
-# num_of_epochs: 100, batch_size: 32
-# Accuracy: 95.2%
-# Path: [SimpleCNN_model_20240120_181615.pth](test%2FSimpleCNN_model_20240120_181615.pth)
 ```
 
 ### RestNet18
@@ -78,16 +72,12 @@ Test: train_sample_videos(train_sample_images_fullscreen)
 #### Dataset1:
 
 ```
-Train: train_sample_videos(train_sample_images_fullscreen)
-Test: train_sample_videos(train_sample_images_fullscreen)
+Train: train_sample_images_with_mediapipe(train_sample_images_with_mediapipe)
+Test: train_sample_images_with_mediapipe(train_sample_images_with_mediapipe)
 ```
 #### Accuracy
+Path: [ResNet18_model_20240121_001621.pth](test%2FResNet18_model_20240121_001621.pth)
 ```
-# num_of_epochs: 100, batch_size: 32
-# Accuracy: 84.2%
-# Model: [ResNet18_model_20240120_162732.pth](test%2FResNet18_model_20240120_162732.pth)
-
-# num_of_epoch2: 200, batch_size: 32
-# Accuracy: 88.0%
-# Model: [ResNet18_model_20240120_164851.pth](test%2FResNet18_model_20240120_164851.pth)
+# num_of_epochs: 100, batch_size: 32, 
+# Accuracy: 100.0%
 ```
