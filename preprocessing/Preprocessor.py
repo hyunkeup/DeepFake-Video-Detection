@@ -9,7 +9,7 @@ FRAME_SHAPE: tuple = tuple(Property.get_property("frame_shape"))
 NUM_OF_FRAMES: int = int(Property.get_property("square_of_root_num_of_frames"))
 
 mp_face_detection = mp.solutions.face_detection
-face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.3)
+face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.7, model_selection=1)
 
 
 class Preprocessor:
@@ -114,10 +114,17 @@ class Preprocessor:
                 f"The num_of_video_total_frames must be greater than num_of_required_frames. num_of_video_total_frames: {num_of_video_total_frames}, num_of_required_frames: {NUM_OF_FRAMES}")
 
         extracted_face_frames = []
+        origin_video_interval = num_of_video_total_frames // num_of_required_frames
+        origin_video_target_indexes = [i * origin_video_interval for i in range(num_of_required_frames)]
+        origin_fullscreen_images = []
         for index in range(num_of_video_total_frames):
             ret, frame = cap.read()
             if not ret:
                 break
+
+            if index in origin_video_target_indexes:
+                fullscreen_image = cv2.resize(frame, (FRAME_SHAPE[0], FRAME_SHAPE[1]))
+                origin_fullscreen_images.append(fullscreen_image)
 
             face_frames = Preprocessor.extract_face(frame)
             if face_frames is None:
@@ -127,13 +134,16 @@ class Preprocessor:
                 face_image = cv2.resize(face_image, (FRAME_SHAPE[0], FRAME_SHAPE[1]))
                 extracted_face_frames.append(face_image)
 
-        if len(extracted_face_frames) < num_of_required_frames:
-            num_of_dummy = num_of_required_frames - len(extracted_face_frames)
-            for _ in range(num_of_dummy):
-                extracted_face_frames.append(np.zeros(shape=FRAME_SHAPE))
-
         extracted_face_frames = np.array(extracted_face_frames)
         interval = len(extracted_face_frames) // num_of_required_frames
         target_indexes = [i * interval for i in range(num_of_required_frames)]
 
-        return extracted_face_frames[target_indexes]
+        results_frames = []
+        if len(target_indexes) > 0:
+            results_frames = extracted_face_frames[target_indexes]
+
+        while len(results_frames) < num_of_required_frames:
+            origin_fullscreen_image = origin_fullscreen_images.pop(0)
+            results_frames.append(origin_fullscreen_image)
+
+        return results_frames
