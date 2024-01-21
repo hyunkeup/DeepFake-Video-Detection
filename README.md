@@ -44,7 +44,6 @@ python preprocessing/run_preprocessor.py
 
 ```
 python train/train_SimpleCNN.py, train/train_RestNet18.py, or ....
-
 ```
 
 ### 3. Test
@@ -58,11 +57,13 @@ python test/test_SimpleCNN.py, test/test_RestNet18.py, or ....
 #### SimpleCNN
 
 ```
+num_of_epochs: 100, batch_size: 32
 Accuracy: 91.8%
 ```
 
 #### RestNet18
 
 ```
+num_of_epochs: 100, batch_size: 32
 Accuracy: 84.2%
 ```
