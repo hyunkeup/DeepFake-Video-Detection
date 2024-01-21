@@ -39,3 +39,30 @@ python preprocessing/run_preprocessor.py
 
 # For each divided folder. It will take at least 360 seconds 
 ```
+
+### 2. Train
+
+```
+python train/train_SimpleCNN.py, train/train_RestNet18.py, or ....
+
+```
+
+### 3. Test
+
+```
+python test/test_SimpleCNN.py, test/test_RestNet18.py, or ....
+```
+
+### 4. Summary
+
+#### SimpleCNN
+
+```
+Accuracy: 91.8%
+```
+
+#### RestNet18
+
+```
+Accuracy: 84.2%
+```

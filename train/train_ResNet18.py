@@ -25,8 +25,7 @@ if __name__ == "__main__":
     # Model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
-    resnet18_model = models.resnet18(pretrained=False)
-    model = resnet18_model.to(device)
+    model = models.resnet18().to(device)
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
@@ -35,5 +34,5 @@ if __name__ == "__main__":
                       train_dataset=train_dataset, test_dataset=test_dataset,
                       batch_size=batch_size, num_of_epochs=epochs)
     trainer.start()
-    trainer.save_model("ResNet18")
+    trainer.save_model(prefix="ResNet18")
     print("Done!")
