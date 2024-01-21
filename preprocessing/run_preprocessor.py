@@ -7,6 +7,7 @@ import cv2
 
 from preprocessing.Preprocessor import Preprocessor
 from property import Property
+from threading import Lock
 
 # Load .env data
 ORIGINAL_HOME_DIRECTORY = Property.get_property("origin_home_directory")
@@ -23,11 +24,12 @@ PREPROCESSED_DIRECTORY = Property.get_property("preprocessed_directory")
 #     combined_image_path = f"C:/workspace/deepfake-detection-challenge/test_images/FAKE/{filename}.jpg"
 #     cv2.imwrite(combined_image_path, combined_frame)
 
-
+lock = Lock()
 def run(m_data):
     filename_with_extension, label, path = m_data
     # video_frames = Preprocessor.read_video(f"{path}/{filename_with_extension}")
-    video_frames = Preprocessor.read_video_and_extract_face(f"{path}/{filename_with_extension}")
+    with lock:
+        video_frames = Preprocessor.read_video_and_extract_face(f"{path}/{filename_with_extension}")
     combined_frame = Preprocessor.combine_video_frames(video_frames)
 
     filename, extension = os.path.splitext(filename_with_extension)
