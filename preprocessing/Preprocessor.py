@@ -91,7 +91,12 @@ class Preprocessor:
             ih, iw, _ = frame.shape
             x, y, w, h = int(box.xmin * iw), int(box.ymin * ih), int(box.width * iw), int(box.height * ih)
             face_image = frame[y:y + h, x:x + w]
-            face_images.append(face_image)
+
+            if face_image.size != 0:
+                face_images.append(face_image)
+
+        if len(face_images) == 0:
+            return None
 
         return face_images
 
@@ -121,8 +126,13 @@ class Preprocessor:
             for face_image in face_frames:
                 face_image = cv2.resize(face_image, (FRAME_SHAPE[0], FRAME_SHAPE[1]))
                 extracted_face_frames.append(face_image)
-        extracted_face_frames = np.array(extracted_face_frames)
 
+        if len(extracted_face_frames) < num_of_required_frames:
+            num_of_dummy = num_of_required_frames - len(extracted_face_frames)
+            for _ in range(num_of_dummy):
+                extracted_face_frames.append(np.zeros(shape=FRAME_SHAPE))
+
+        extracted_face_frames = np.array(extracted_face_frames)
         interval = len(extracted_face_frames) // num_of_required_frames
         target_indexes = [i * interval for i in range(num_of_required_frames)]
 

@@ -1,3 +1,4 @@
+import glob
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -13,13 +14,21 @@ PARTITIONED_DIRECTORIES = Property.get_property("partitioned_directories")
 THREAD_POOL_SIZE = Property.get_property("workers_thread_pool_size")
 PREPROCESSED_DIRECTORY = Property.get_property("preprocessed_directory")
 
+# test_directory = "C:/workspace/deepfake-detection-challenge/test_videos"
+# for file in glob.glob(f"{test_directory}/*.mp4"):
+#     video_frames = Preprocessor.read_video_and_extract_face(file)
+#     combined_frame = Preprocessor.combine_video_frames(video_frames)
+#     filename_with_extension = os.path.basename(file)
+#     filename, extension = os.path.splitext(filename_with_extension)
+#     combined_image_path = f"C:/workspace/deepfake-detection-challenge/test_images/FAKE/{filename}.jpg"
+#     cv2.imwrite(combined_image_path, combined_frame)
+
 
 def run(m_data):
     filename_with_extension, label, path = m_data
     # video_frames = Preprocessor.read_video(f"{path}/{filename_with_extension}")
     video_frames = Preprocessor.read_video_and_extract_face(f"{path}/{filename_with_extension}")
     combined_frame = Preprocessor.combine_video_frames(video_frames)
-    cv2.imwrite(f"temp_0.jpg", combined_frame)
 
     filename, extension = os.path.splitext(filename_with_extension)
     combined_image_path = f"{PREPROCESSED_DIRECTORY}/{label}/{filename}.jpg"

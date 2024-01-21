@@ -56,11 +56,11 @@ python test/test_SimpleCNN.py, test/test_RestNet18.py, or ....
 
 ### SimpleCNN
 
-#### Dataset:
+#### Dataset1:
 
 ``` 
-Train: train_sample_videos(train_sample_images)
-Test: train_sample_videos(train_sample_images)
+Train: train_sample_videos(train_sample_images_fullscreen)
+Test: train_sample_videos(train_sample_images_fullscreen)
 ```
 #### Accuracy
 ```
@@ -75,11 +75,11 @@ Test: train_sample_videos(train_sample_images)
 
 ### RestNet18
 
-#### Dataset:
+#### Dataset1:
 
 ```
-Train: train_sample_videos(train_sample_images)
-Test: train_sample_videos(train_sample_images)
+Train: train_sample_videos(train_sample_images_fullscreen)
+Test: train_sample_videos(train_sample_images_fullscreen)
 ```
 #### Accuracy
 ```
