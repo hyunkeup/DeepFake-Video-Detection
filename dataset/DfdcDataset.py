@@ -4,15 +4,20 @@ from torchvision.datasets import ImageFolder
 
 from property import Property
 
-PREPROCESSED_DIRECTORY: str = Property.get_property("preprocessed_directory")
+FRAME_SHAPE: tuple = tuple(Property.get_property("frame_shape"))
 
 
-class DfdsDataset(Dataset):
-    def __init__(self, transform: transforms.Compose = None):
+class ImageDataset(Dataset):
+    def __init__(self, directory: str, transform: transforms.Compose = None):
         """
         :param transform:
         """
-        self.dataset = ImageFolder(root=f"{PREPROCESSED_DIRECTORY}", transform=transform)
+        if transform is None:
+            transform = transforms.Compose([
+                transforms.Resize((FRAME_SHAPE[0], FRAME_SHAPE[1])),
+                transforms.ToTensor(),
+            ])
+        self.dataset = ImageFolder(root=f"{directory}", transform=transform)
         self.classes = self.dataset.classes
 
     def __len__(self):
