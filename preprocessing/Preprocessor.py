@@ -1,3 +1,5 @@
+from typing import Callable
+
 import cv2
 import numpy as np
 
@@ -26,7 +28,7 @@ class Preprocessor:
         return metadata
 
     @staticmethod
-    def read_video(video_path: str) -> list:
+    def read_video(video_path: str, edit_frame: Callable = None) -> list:
         """
         :param video_path: C:\workspace\deepfake-detection-challenge\train_sample_videos\aaa.mp4
         :return: image frames
@@ -49,11 +51,10 @@ class Preprocessor:
             if index not in target_indexes:
                 continue
 
-            frame = cv2.resize(frame, (FRAME_SHAPE[0], FRAME_SHAPE[1]))
-            if FRAME_SHAPE[2] == 1:
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                frame = frame.reshape(FRAME_SHAPE)
+            if edit_frame is not None:
+                frame = edit_frame(frame)
 
+            frame = cv2.resize(frame, (FRAME_SHAPE[0], FRAME_SHAPE[1]))
             video_frames.append(frame)
 
         return video_frames

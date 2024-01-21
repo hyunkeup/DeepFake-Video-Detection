@@ -23,7 +23,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
     model = models.resnet18().to(device)
-    model.load_state_dict(torch.load("./ResNet18_model_20240120_162732.pth"))
+    model.load_state_dict(torch.load("./ResNet18_model_20240120_164851.pth"))
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 

@@ -23,7 +23,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
     model = SimpleCNN().to(device)
-    model.load_state_dict(torch.load("./SimplCNN_model_20240120_154945.pth"))
+    model.load_state_dict(torch.load("./SimpleCNN_model_20240120_181615.pth"))
     loss_fn = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 

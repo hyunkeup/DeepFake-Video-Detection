@@ -52,32 +52,42 @@ python train/train_SimpleCNN.py, train/train_RestNet18.py, or ....
 python test/test_SimpleCNN.py, test/test_RestNet18.py, or ....
 ```
 
-### 4. Summary
+## Model
 
-#### SimpleCNN
+### SimpleCNN
 
-##### Dataset:
+#### Dataset:
 
 ``` 
 Train: train_sample_videos(train_sample_images)
 Test: train_sample_videos(train_sample_images)
 ```
-
+#### Accuracy
 ```
 # num_of_epochs: 100, batch_size: 32
 # Accuracy: 91.8%
+# Path: [SimplCNN_model_20240120_154945.pth](test%2FSimplCNN_model_20240120_154945.pth)
+
+# num_of_epochs: 100, batch_size: 32
+# Accuracy: 95.2%
+# Path: [SimpleCNN_model_20240120_181615.pth](test%2FSimpleCNN_model_20240120_181615.pth)
 ```
 
-#### RestNet18
+### RestNet18
 
-##### Dataset:
+#### Dataset:
 
 ```
 Train: train_sample_videos(train_sample_images)
 Test: train_sample_videos(train_sample_images)
 ```
-
+#### Accuracy
 ```
 # num_of_epochs: 100, batch_size: 32
 # Accuracy: 84.2%
+# Model: [ResNet18_model_20240120_162732.pth](test%2FResNet18_model_20240120_162732.pth)
+
+# num_of_epoch2: 200, batch_size: 32
+# Accuracy: 88.0%
+# Model: [ResNet18_model_20240120_164851.pth](test%2FResNet18_model_20240120_164851.pth)
 ```
