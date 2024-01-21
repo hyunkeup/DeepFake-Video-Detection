@@ -1,3 +1,5 @@
+from threading import Lock
+
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -10,6 +12,8 @@ NUM_OF_FRAMES: int = int(Property.get_property("square_of_root_num_of_frames"))
 
 mp_face_detection = mp.solutions.face_detection
 face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.7, model_selection=1)
+
+mp_lock = Lock()
 
 
 class Preprocessor:
@@ -80,7 +84,8 @@ class Preprocessor:
     def extract_face(frame):
         height, width, _ = frame.shape
         image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = face_detection.process(image_rgb)
+        with mp_lock:
+            results = face_detection.process(image_rgb)
 
         if not results.detections:
             return None
