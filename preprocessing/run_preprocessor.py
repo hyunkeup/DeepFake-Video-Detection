@@ -25,26 +25,26 @@ PREPROCESSED_DIRECTORY = Property.get_property("preprocessed_directory")
 
 def run(m_data):
     # Set the target image path
-    filename_with_extension, label, path = m_data
+    filename_with_extension, label, directory_path = m_data
     filename, extension = os.path.splitext(filename_with_extension)
     combined_image_path = f"{PREPROCESSED_DIRECTORY}/{label}/{filename}.jpg"
     if os.path.exists(combined_image_path):
-        print(f"\t* Skipped {combined_image_path}")
+        print(f"\t* Skipped {combined_image_path} from '{os.path.basename(directory_path)}'.")
         return
 
     # Get frames
     # video_frames = Preprocessor.read_video(f"{path}/{filename_with_extension}")
-    video_frames = Preprocessor.read_video_and_extract_face(f"{path}/{filename_with_extension}")
+    video_frames = Preprocessor.read_video_and_extract_face(f"{directory_path}/{filename_with_extension}")
 
     # Combine the frames
     combined_frame = Preprocessor.combine_video_frames(video_frames)
 
     # Save the combined image
     cv2.imwrite(combined_image_path, combined_frame)
-    print(f"\t* Saved {combined_image_path} from '{os.path.basename(path)}'.")
+    print(f"\t* Saved {combined_image_path} from '{os.path.basename(directory_path)}'.")
 
 
-if __name__ == "__main__":
+def main():
     print("=" * 40 + " Start preprocess " + "=" * 40)
     s_time = time.time()
 
@@ -83,3 +83,7 @@ if __name__ == "__main__":
 
     e_time = time.time()
     print("=" * 40 + f" {round(e_time - s_time, 3)} seconds - Done. " + "=" * 40)
+
+
+if __name__ == "__main__":
+    main()
