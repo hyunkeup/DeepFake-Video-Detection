@@ -41,7 +41,7 @@ def run(m_data):
 
     # Save the combined image
     cv2.imwrite(combined_image_path, combined_frame)
-    print(f"\t* Saved {combined_image_path}.")
+    print(f"\t* Saved {combined_image_path} from '{os.path.basename(path)}'.")
 
 
 if __name__ == "__main__":
