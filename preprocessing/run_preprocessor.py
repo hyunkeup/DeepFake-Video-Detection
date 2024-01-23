@@ -34,7 +34,7 @@ def run(m_data):
 
     # Get frames
     # video_frames = Preprocessor.read_video(f"{path}/{filename_with_extension}")
-    video_frames = Preprocessor.read_video_and_extract_face(f"{directory_path}/{filename_with_extension}")
+    video_frames = Preprocessor.read_video_and_extract_face2(f"{directory_path}/{filename_with_extension}")
 
     # Combine the frames
     combined_frame = Preprocessor.combine_video_frames(video_frames)
@@ -72,7 +72,7 @@ def main():
 
     # Print jobs
     for _, metadata_path, metadata in jobs:
-        print(f"\t* The number of videos: {len(metadata)}, path: {metadata_path}, ")
+        print(f"\t* The number of videos: {len(metadata)}, path: {metadata_path}.")
 
     # Execute workers
     print("Execute workers: ")

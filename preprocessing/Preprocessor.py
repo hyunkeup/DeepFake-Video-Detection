@@ -11,7 +11,7 @@ FRAME_SHAPE: tuple = tuple(Property.get_property("frame_shape"))
 NUM_OF_FRAMES: int = int(Property.get_property("square_of_root_num_of_frames"))
 
 mp_face_detection = mp.solutions.face_detection
-face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.7, model_selection=1)
+face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.8, model_selection=1)
 
 mp_lock = Lock()
 
@@ -152,3 +152,34 @@ class Preprocessor:
             results_frames.append(origin_fullscreen_image)
 
         return results_frames
+
+    @staticmethod
+    def read_video_and_extract_face2(video_path: str):
+        """
+                :param video_path: C:\workspace\deepfake-detection-challenge\train_sample_videos\aaa.mp4
+                :return: image frames
+                """
+        cap = cv2.VideoCapture(video_path)
+        num_of_video_total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        num_of_required_frames = NUM_OF_FRAMES ** 2
+        if num_of_video_total_frames < num_of_required_frames:
+            raise Exception(
+                f"The num_of_video_total_frames must be greater than num_of_required_frames. num_of_video_total_frames: {num_of_video_total_frames}, num_of_required_frames: {NUM_OF_FRAMES}")
+
+        video_frames = []
+        interval = num_of_video_total_frames // num_of_required_frames
+        target_indexes = [i * interval for i in range(num_of_required_frames)]
+        for index in range(num_of_video_total_frames):
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            if index not in target_indexes:
+                continue
+
+            face_frames = Preprocessor.extract_face(frame)
+            for face_frame in face_frames:
+                face_frame = cv2.resize(face_frame, (FRAME_SHAPE[0], FRAME_SHAPE[1]))
+                video_frames.append(face_frame)
+
+        return video_frames
