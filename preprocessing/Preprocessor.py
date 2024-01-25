@@ -109,7 +109,7 @@ class Preprocessor:
     def read_video_and_extract_face(video_path: str):
         """
         :param video_path: C:\workspace\deepfake-detection-challenge\train_sample_videos\aaa.mp4
-        :return: image frames
+        :return: face frames
         """
         cap = cv2.VideoCapture(video_path)
         num_of_video_total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -156,9 +156,9 @@ class Preprocessor:
     @staticmethod
     def read_video_and_extract_face2(video_path: str):
         """
-                :param video_path: C:\workspace\deepfake-detection-challenge\train_sample_videos\aaa.mp4
-                :return: image frames
-                """
+        :param video_path: C:\workspace\deepfake-detection-challenge\train_sample_videos\aaa.mp4
+        :return: face frames
+        """
         cap = cv2.VideoCapture(video_path)
         num_of_video_total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         num_of_required_frames = NUM_OF_FRAMES ** 2
