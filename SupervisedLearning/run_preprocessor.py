@@ -14,15 +14,6 @@ THREAD_POOL_SIZE = Property.get_property("workers_thread_pool_size")
 PREPROCESSED_DIRECTORY = Property.get_property("preprocessed_directory")
 
 
-# test_directory = "C:/workspace/deepfake-detection-challenge/test_videos"
-# for file in glob.glob(f"{test_directory}/*.mp4"):
-#     video_frames = Preprocessor.read_video_and_extract_face(file)
-#     combined_frame = Preprocessor.combine_video_frames(video_frames)
-#     filename_with_extension = os.path.basename(file)
-#     filename, extension = os.path.splitext(filename_with_extension)
-#     combined_image_path = f"C:/workspace/deepfake-detection-challenge/test_images/FAKE/{filename}.jpg"
-#     cv2.imwrite(combined_image_path, combined_frame)
-
 def run(m_data):
     # Set the target image path
     filename_with_extension, label, directory_path = m_data
@@ -33,22 +24,12 @@ def run(m_data):
         return
 
     # Get frames
-    video_frames = Preprocessor.read_video(f"{directory_path}/{filename_with_extension}")
+    frames = Preprocessor.read_video_frames(f"{directory_path}/{filename_with_extension}")
     # Save the images
-    for i, frame in enumerate(video_frames):
+    for i, frame in enumerate(frames):
         image_path = f"{PREPROCESSED_DIRECTORY}/{label}/{filename}_{i}.jpg"
         cv2.imwrite(image_path, frame)
         print(f"\t* Saved {image_path} from '{os.path.basename(directory_path)}'.")
-
-    # # Get face frames
-    # video_frames = Preprocessor.read_video_and_extract_face2(f"{directory_path}/{filename_with_extension}")
-    #
-    # # Combine the frames
-    # combined_frame = Preprocessor.combine_video_frames(video_frames)
-    #
-    # # Save the combined image
-    # cv2.imwrite(combined_image_path, combined_frame)
-    # print(f"\t* Saved {combined_image_path} from '{os.path.basename(directory_path)}'.")
 
 
 def main():
