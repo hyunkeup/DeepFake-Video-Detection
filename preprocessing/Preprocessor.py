@@ -108,8 +108,5 @@ class Preprocessor:
     def read_audio_from_video(vide_path: str):
         video = me.VideoFileClip(vide_path)
         audio_array = video.audio.to_soundarray()
-        sample_rate = audio_array.shape[0]
 
-        print(audio_array)
-        print(sample_rate)
-        return audio_array, sample_rate
+        return audio_array
