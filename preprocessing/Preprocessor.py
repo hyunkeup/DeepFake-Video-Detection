@@ -1,20 +1,28 @@
+import os
 from threading import Lock
 
 import cv2
 import mediapipe as mp
 import moviepy.editor as me
 import numpy as np
+import torchaudio
 
 from property import Property
 from utils import FileUtils
 
 FRAME_SHAPE: tuple = tuple(Property.get_property("frame_shape"))
 NUM_OF_FRAMES: int = int(Property.get_property("square_of_root_num_of_frames"))
+ORIGINAL_HOME_DIRECTORY = Property.get_property("origin_home_directory")
+PARTITIONED_DIRECTORIES = Property.get_property("partitioned_directories")
+PREPROCESSED_DIRECTORY = Property.get_property("preprocessed_directory")
 
 mp_face_detection = mp.solutions.face_detection
 face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.8, model_selection=1)
 
 mp_lock = Lock()
+
+VIDEO_FPS = 30
+AUDIO_FPS = 16000
 
 
 class Preprocessor:
@@ -43,7 +51,7 @@ class Preprocessor:
         :return: the frames from the video
         """
         cap = cv2.VideoCapture(video_path)
-        fps = cap.get(cv2.CAP_PROP_FPS)
+        # fps = cap.get(cv2.CAP_PROP_FPS)
         num_of_video_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         video_frames = []
         for index in range(num_of_video_frames):
@@ -55,7 +63,7 @@ class Preprocessor:
             video_frames.append(frame)
         cap.release()
 
-        return video_frames, fps
+        return video_frames, VIDEO_FPS
 
     @staticmethod
     def combine_video_frames(video_frames: list):
@@ -107,9 +115,51 @@ class Preprocessor:
         return face_images
 
     @staticmethod
-    def read_audio_from_video(vide_path: str):
-        video = me.VideoFileClip(vide_path)
-        audio_array = video.audio.to_soundarray()
-        fps = video.audio.fps
+    def read_audio_from_video(video_path: str):
+        # Extract the audio file from the video
+        filename, extension = os.path.splitext(os.path.basename(video_path))
+        audio_path = f"./temp_{filename}.wav"
+        video_clip = me.VideoFileClip(video_path)
+        audio_clip = video_clip.audio
+        audio_clip.write_audiofile(audio_path, codec='pcm_s16le')
+        video_clip.close()
 
-        return audio_array, fps
+        # Resample the audio 44100 -> 16000
+        audio_frames, origin_audio_fps = torchaudio.load(audio_path)
+        audio_frames = torchaudio.functional.resample(audio_frames, orig_freq=origin_audio_fps, new_freq=AUDIO_FPS)
+
+        # Remove the temp audio file.
+        if os.path.exists(audio_path):
+            os.remove(audio_path)
+
+        return audio_frames.T, AUDIO_FPS
+
+    @staticmethod
+    def load_dataset():
+        # Load metadata
+        print("Load metadata: ", end="")
+        jobs = []
+        for partitioned_directory in PARTITIONED_DIRECTORIES:
+            directory_path = f"{ORIGINAL_HOME_DIRECTORY}/{partitioned_directory}"
+            metadata_path = f"{directory_path}/metadata.json"
+            metadata = Preprocessor.read_metadata(metadata_path)
+            jobs.append((directory_path, metadata_path, metadata))
+        print("Done")
+
+        # Get all dataset
+        dataset = []
+        for directory_path, metadata_path, metadata in jobs:
+            print(f"\t* The number of videos: {len(metadata)}, path: {metadata_path}.")
+            for filename_with_extension, label in metadata:
+                # Get frames
+                video_path = f"{directory_path}/{filename_with_extension}"
+                video_frames, video_fps = Preprocessor.read_video_frames(video_path)
+                audio_frames, audio_fps = Preprocessor.read_audio_from_video(video_path)
+
+                num_of_units = int(len(video_frames) / video_fps)
+                for i in range(num_of_units):
+                    new_video_data = video_frames[i * video_fps: (i + 1) * video_fps]
+                    new_audio_data = audio_frames[i * audio_fps: (i + 1) * audio_fps]
+                    dataset.append((new_video_data, new_audio_data))
+
+        return dataset
