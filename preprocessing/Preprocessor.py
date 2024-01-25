@@ -1,5 +1,7 @@
 import os
 from threading import Lock
+from multiprocessing import Pool
+import time
 
 import cv2
 import mediapipe as mp
@@ -42,6 +44,13 @@ class Preprocessor:
             metadata.append((filename, data[filename]["label"]))
 
         return metadata
+    
+    @staticmethod
+    def process_batch(frames, resize_shape):
+        resized_frames = [
+            cv2.resize(frame, resize_shape) for frame in frames
+        ]
+        return resized_frames
 
     @staticmethod
     def read_video_frames(video_path: str):
@@ -50,6 +59,7 @@ class Preprocessor:
         :param metadata_path: C:\workspace\deepfake-detection-challenge\train_sample_videos\metadata.json
         :return: the frames from the video
         """
+        print(video_path)
         cap = cv2.VideoCapture(video_path)
         # fps = cap.get(cv2.CAP_PROP_FPS)
         num_of_video_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -58,7 +68,7 @@ class Preprocessor:
             ret, frame = cap.read()
             if not ret:
                 break
-
+            
             frame = cv2.resize(frame, (FRAME_SHAPE[0], FRAME_SHAPE[1]))
             video_frames.append(frame)
         cap.release()
@@ -133,35 +143,42 @@ class Preprocessor:
             os.remove(audio_path)
 
         return audio_frames.T, AUDIO_FPS
+    
+
+    @staticmethod
+    def process_video(directory_path, filename_with_extension):
+        video_path = os.path.join(directory_path, filename_with_extension)
+        video_frames, video_fps = Preprocessor.read_video_frames(video_path)
+        audio_frames, audio_fps = Preprocessor.read_audio_from_video(video_path)
+
+        video_chunk_size = int(video_fps * 0.2)
+        audio_chunk_size = int(audio_fps * 0.2)
+        num_of_units = int(len(video_frames) / video_chunk_size)
+
+        return [(video_frames[i * video_chunk_size: (i + 1) * video_chunk_size],
+                 audio_frames[i * audio_chunk_size: (i + 1) * audio_chunk_size])
+                for i in range(num_of_units)]
 
     @staticmethod
     def load_dataset():
-        # Load metadata
+        start = time.time()
         print("Load metadata: ", end="")
         jobs = []
         for partitioned_directory in PARTITIONED_DIRECTORIES:
             directory_path = f"{ORIGINAL_HOME_DIRECTORY}/{partitioned_directory}"
             metadata_path = f"{directory_path}/metadata.json"
             metadata = Preprocessor.read_metadata(metadata_path)
-            jobs.append((directory_path, metadata_path, metadata))
+            for filename_with_extension, label in metadata:
+                jobs.append((directory_path, filename_with_extension))
+
         print("Done")
 
-        # Get all dataset
-        dataset = []
-        for directory_path, metadata_path, metadata in jobs:
-            print(f"\t* The number of videos: {len(metadata)}, path: {metadata_path}.")
-            for filename_with_extension, label in metadata:
-                # Get frames
-                video_path = f"{directory_path}/{filename_with_extension}"
-                video_frames, video_fps = Preprocessor.read_video_frames(video_path)
-                audio_frames, audio_fps = Preprocessor.read_audio_from_video(video_path)
+        with Pool() as pool:
+            results = pool.starmap(Preprocessor.process_video, jobs)
 
-                video_chunk_size = int(video_fps * 0.2)
-                audio_chunk_size = int(audio_fps * 0.2)
-                num_of_units = int(len(video_frames) / video_chunk_size)
-                for i in range(num_of_units):
-                    new_video_data = video_frames[i * video_chunk_size: (i + 1) * video_chunk_size]
-                    new_audio_data = audio_frames[i * audio_chunk_size: (i + 1) * audio_chunk_size]
-                    dataset.append((new_video_data, new_audio_data))
+        dataset = [item for sublist in results for item in sublist]
 
+        print(f"Finished preprocessing: in {time.time() - start} seconds")
         return dataset
+
+
