@@ -43,17 +43,19 @@ class Preprocessor:
         :return: the frames from the video
         """
         cap = cv2.VideoCapture(video_path)
-        num_of_video_total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        num_of_video_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         video_frames = []
-        for index in range(num_of_video_total_frames):
+        for index in range(num_of_video_frames):
             ret, frame = cap.read()
             if not ret:
                 break
 
             frame = cv2.resize(frame, (FRAME_SHAPE[0], FRAME_SHAPE[1]))
             video_frames.append(frame)
+        cap.release()
 
-        return video_frames
+        return video_frames, fps
 
     @staticmethod
     def combine_video_frames(video_frames: list):
@@ -108,5 +110,10 @@ class Preprocessor:
     def read_audio_from_video(vide_path: str):
         video = me.VideoFileClip(vide_path)
         audio_array = video.audio.to_soundarray()
+        fps = video.audio.fps
 
-        return audio_array
+        return audio_array, fps
+
+
+Preprocessor.read_video_frames("C:/workspace/deepfake-detection-challenge/train_sample_videos/aagfhgtpmv.mp4")
+Preprocessor.read_audio_from_video("C:/workspace/deepfake-detection-challenge/train_sample_videos/aagfhgtpmv.mp4")

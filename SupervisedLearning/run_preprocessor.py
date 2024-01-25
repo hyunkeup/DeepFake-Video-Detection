@@ -24,7 +24,7 @@ def run(m_data):
         return
 
     # Get frames
-    frames = Preprocessor.read_video_frames(f"{directory_path}/{filename_with_extension}")
+    frames, fps = Preprocessor.read_video_frames(f"{directory_path}/{filename_with_extension}")
     # Save the images
     for i, frame in enumerate(frames):
         image_path = f"{PREPROCESSED_DIRECTORY}/{label}/{filename}_{i}.jpg"
