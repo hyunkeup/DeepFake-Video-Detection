@@ -1,6 +1,4 @@
-# CSCI566_Final_Project
-
-DeepFake Detector
+# DeepFake Detection
 
 ## Original Dataset information
 
@@ -18,24 +16,12 @@ metadata.json
 }
 ```
 
-## Data generalization
-
-* 224x224: This size was widely used in early CNN models like AlexNet.
-* 299x299: Some models, such as Inception, use this size.
-* 224x224, 299x299, 331x331, 448x448: Some models support multiple sizes, and these are commonly used options.
-* Custom Sizes: Depending on the project, custom sizes may be chosen. Some models are designed to handle a variety of
-  input sizes.
-* Generally, the choice of image size is influenced by the model architecture, characteristics of the training data,
-  computational resources, and specific project requirements. When using transfer learning, it's often recommended to
-  follow the expected input size of the pre-trained model. The image size should always be adjusted to suit the
-  particular context and needs.
-
 ## How to start
 
 ### 1. Start the preprocessing
 
 ```
-python preprocessing/run_preprocessor.py
+python SupervisedLearning/run_preprocessor.py
 
 # For each divided folder. It will take at least 360 seconds 
 ```
@@ -43,13 +29,13 @@ python preprocessing/run_preprocessor.py
 ### 2. Train
 
 ```
-python train/train_SimpleCNN.py, train/train_RestNet18.py, or ....
+python SupervisedLearning/train_SimpleCNN.py, train/train_RestNet18.py, or ....
 ```
 
 ### 3. Test
 
 ```
-python test/test_SimpleCNN.py, test/test_RestNet18.py, or ....
+python SupervisedLearning/test_SimpleCNN.py, test/test_RestNet18.py, or ....
 ```
 
 ## Model
@@ -62,8 +48,11 @@ python test/test_SimpleCNN.py, test/test_RestNet18.py, or ....
 Train: train_sample_images_with_mediapipe(train_sample_images_with_mediapipe)
 Test: train_sample_images_with_mediapipe(train_sample_images_with_mediapipe)
 ```
+
 #### Accuracy
-Path: 
+
+Path:
+
 ```
 ```
 
@@ -75,8 +64,11 @@ Path:
 Train: train_sample_images_with_mediapipe(train_sample_images_with_mediapipe)
 Test: train_sample_images_with_mediapipe(train_sample_images_with_mediapipe)
 ```
+
 #### Accuracy
+
 Path: [ResNet18_model_20240121_001621.pth](test%2FResNet18_model_20240121_001621.pth)
+
 ```
 # num_of_epochs: 100, batch_size: 32, 
 # Accuracy: 100.0%
