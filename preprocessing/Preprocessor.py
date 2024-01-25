@@ -156,10 +156,12 @@ class Preprocessor:
                 video_frames, video_fps = Preprocessor.read_video_frames(video_path)
                 audio_frames, audio_fps = Preprocessor.read_audio_from_video(video_path)
 
-                num_of_units = int(len(video_frames) / video_fps)
+                video_chunk_size = int(video_fps * 0.2)
+                audio_chunk_size = int(audio_fps * 0.2)
+                num_of_units = int(len(video_frames) / video_chunk_size)
                 for i in range(num_of_units):
-                    new_video_data = video_frames[i * video_fps: (i + 1) * video_fps]
-                    new_audio_data = audio_frames[i * audio_fps: (i + 1) * audio_fps]
+                    new_video_data = video_frames[i * video_chunk_size: (i + 1) * video_chunk_size]
+                    new_audio_data = audio_frames[i * audio_chunk_size: (i + 1) * audio_chunk_size]
                     dataset.append((new_video_data, new_audio_data))
 
         return dataset
