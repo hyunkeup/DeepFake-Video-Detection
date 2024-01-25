@@ -113,7 +113,3 @@ class Preprocessor:
         fps = video.audio.fps
 
         return audio_array, fps
-
-
-Preprocessor.read_video_frames("C:/workspace/deepfake-detection-challenge/train_sample_videos/aagfhgtpmv.mp4")
-Preprocessor.read_audio_from_video("C:/workspace/deepfake-detection-challenge/train_sample_videos/aagfhgtpmv.mp4")
