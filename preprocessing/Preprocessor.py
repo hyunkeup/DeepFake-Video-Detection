@@ -1,6 +1,7 @@
 import os
 from threading import Lock
-from multiprocessing import Pool
+from concurrent.futures import ThreadPoolExecutor
+import concurrent
 import time
 
 import cv2
@@ -173,12 +174,15 @@ class Preprocessor:
 
         print("Done")
 
-        with Pool(4) as pool:
-            results = pool.starmap(Preprocessor.process_video, jobs)
 
-        dataset = [item for sublist in results for item in sublist]
+        dataset = []
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(Preprocessor.process_video, *job) for job in jobs]
+            for future in concurrent.futures.as_completed(futures):
+                dataset.extend(future.result())
 
-        print(f"Finished preprocessing: in {time.time() - start} seconds")
+
+        end = time.time()
+        print(f"Dataset loaded in {end - start} seconds")
         return dataset
-
 
