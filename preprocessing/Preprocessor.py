@@ -173,7 +173,7 @@ class Preprocessor:
 
         print("Done")
 
-        with Pool() as pool:
+        with Pool(4) as pool:
             results = pool.starmap(Preprocessor.process_video, jobs)
 
         dataset = [item for sublist in results for item in sublist]
