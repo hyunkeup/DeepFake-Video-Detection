@@ -174,11 +174,13 @@ class Preprocessor:
 
         print("Done")
 
+
         dataset = []
         with ThreadPoolExecutor() as executor:
             futures = [executor.submit(Preprocessor.process_video, *job) for job in jobs]
             for future in concurrent.futures.as_completed(futures):
                 dataset.extend(future.result())
+
 
         end = time.time()
         print(f"Dataset loaded in {end - start} seconds")
