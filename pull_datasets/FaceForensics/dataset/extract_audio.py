@@ -44,13 +44,12 @@ def is_youtube_link_valid(url):
         return False
 
 
-def download_audio_from_youtube(url, output_path, filename):
+def download_audio_from_youtube(yt, output_path, filename):
     """Downloads audio from a YouTube video. Requires 'pytube'. Adjust according to your needs."""
     # yt = YouTube(url)
     # audio_stream = yt.streams.get_audio_only()
     # audio_stream.download(output_dir=output_path, filename=filename)
 
-    yt = YouTube(url)
     audio_stream = yt.streams.get_audio_only()
     # Combine the output path and filename to form the full path
     full_path = os.path.join(output_path, filename)
@@ -110,14 +109,18 @@ def process_directory(curr_dir, video_dir, audio_dir):
         yt_audio_dir = f"{audio_dir}/{yt_mapping_key}"
         data = load_json_data(yt_audio_dir, f"{yt_mapping_key}.json")
         youtube_url = data.get('webpage_url', '')
-        if is_youtube_link_valid(youtube_url):
+        yt = YouTube(youtube_url) 		
+        try:
+        	yt.check_availability()
+	Except exception as e:
+        if is_youtube_link_valid(youtube_url) and yt.check_availability():
             print(f"URL is valid: {youtube_url}")
             frame_data = load_json_data(
                 f"{yt_audio_dir}", 'extracted_sequences/0.json')
             original_audio_name = f"original_{yt_mapping_key}"
             trimmed_audio_name = f"{filename}.mp3"
             download_audio_from_youtube(
-                youtube_url, yt_audio_dir, original_audio_name)
+                yt, yt_audio_dir, original_audio_name)
             onlyfiles = [f for f in listdir(f"{yt_audio_dir}/{original_audio_name}") if isfile(
                 join(f"{yt_audio_dir}/{original_audio_name}", f))]
             input_file = f"{yt_audio_dir}/{original_audio_name}/{onlyfiles[0]}"
@@ -131,7 +134,7 @@ def process_directory(curr_dir, video_dir, audio_dir):
 
 
 if __name__ == "__main__":
-    video_dir = "test/original_sequences/youtube/c23/videos"
+    video_dir = "video_clips/original_sequences/youtube/c23/videos"
     audio_dir = 'audio/downloaded_videos_info'
     if not os.path.exists("audio_clips"):
         os.makedirs("audio_clips")
