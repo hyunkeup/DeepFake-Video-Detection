@@ -126,11 +126,11 @@ def process_directory(curr_dir, video_dir, audio_dir):
                 extract_audio_segment(
                     input_file, f"{curr_dir}/audio_clips/{trimmed_audio_name}", frame_data[0], frame_data[-1], int(fps))
             else:
-                unavailable.write(yt_mapping_key + f'\t{youtube_url}\n')
+                unavailable.write(filename + " " + yt_mapping_key + f'\t{youtube_url}\n')
                 print(
                     f"URL is not valid or video is not accessible: {youtube_url}")
         except Exception as e:
-            unavailable.write(yt_mapping_key + f'\t{youtube_url}\n')
+            unavailable.write(filename + " " + yt_mapping_key + f'\t{youtube_url}\n')
             print(
                 f"URL is not valid or video is not accessible: {youtube_url}")
             
