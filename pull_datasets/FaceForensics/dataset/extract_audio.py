@@ -111,25 +111,30 @@ def process_directory(curr_dir, video_dir, audio_dir):
         youtube_url = data.get('webpage_url', '')
         yt = YouTube(youtube_url) 		
         try:
-        	yt.check_availability()
-	Except exception as e:
-        if is_youtube_link_valid(youtube_url) and yt.check_availability():
-            print(f"URL is valid: {youtube_url}")
-            frame_data = load_json_data(
-                f"{yt_audio_dir}", 'extracted_sequences/0.json')
-            original_audio_name = f"original_{yt_mapping_key}"
-            trimmed_audio_name = f"{filename}.mp3"
-            download_audio_from_youtube(
-                yt, yt_audio_dir, original_audio_name)
-            onlyfiles = [f for f in listdir(f"{yt_audio_dir}/{original_audio_name}") if isfile(
-                join(f"{yt_audio_dir}/{original_audio_name}", f))]
-            input_file = f"{yt_audio_dir}/{original_audio_name}/{onlyfiles[0]}"
-            extract_audio_segment(
-                input_file, f"{curr_dir}/audio_clips/{trimmed_audio_name}", frame_data[0], frame_data[-1], int(fps))
-        else:
+            yt.check_availability()
+            if is_youtube_link_valid(youtube_url):
+                print(f"URL is valid: {youtube_url}")
+                frame_data = load_json_data(
+                    f"{yt_audio_dir}", 'extracted_sequences/0.json')
+                original_audio_name = f"original_{yt_mapping_key}"
+                trimmed_audio_name = f"{filename}.mp3"
+                download_audio_from_youtube(
+                    yt, yt_audio_dir, original_audio_name)
+                onlyfiles = [f for f in listdir(f"{yt_audio_dir}/{original_audio_name}") if isfile(
+                    join(f"{yt_audio_dir}/{original_audio_name}", f))]
+                input_file = f"{yt_audio_dir}/{original_audio_name}/{onlyfiles[0]}"
+                extract_audio_segment(
+                    input_file, f"{curr_dir}/audio_clips/{trimmed_audio_name}", frame_data[0], frame_data[-1], int(fps))
+            else:
+                unavailable.write(yt_mapping_key + f'\t{youtube_url}\n')
+                print(
+                    f"URL is not valid or video is not accessible: {youtube_url}")
+        except Exception as e:
             unavailable.write(yt_mapping_key + f'\t{youtube_url}\n')
             print(
                 f"URL is not valid or video is not accessible: {youtube_url}")
+            
+        
     unavailable.close()
 
 
