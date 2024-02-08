@@ -17,13 +17,13 @@ THREAD_POOL_SIZE = Property.get_property("workers_thread_pool_size")
 PREPROCESSED_DIRECTORY = Property.get_property("preprocessed_directory")
 
 device = torch.device("cuda") if torch.cuda.is_available() else "cpu"
-mtcnn = MTCNN(image_size=(720, 1280), device=device)
+mtcnn = MTCNN(image_size=(1080, 1920), device=device)
 
 save_frames = 15
 input_fps = 30
 
 save_length = 3.6
-save_avi = False
+save_avi = True
 
 
 def get_select_distribution(m, n):
