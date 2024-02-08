@@ -2,8 +2,9 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-import cv2
-import numpy as np
+import librosa
+import moviepy.editor as me
+import soundfile as sf
 
 from preprocessing.Preprocessor import Preprocessor
 from property import Property
@@ -14,15 +15,7 @@ PARTITIONED_DIRECTORIES = Property.get_property("partitioned_directories")
 THREAD_POOL_SIZE = Property.get_property("workers_thread_pool_size")
 PREPROCESSED_DIRECTORY = Property.get_property("preprocessed_directory")
 
-save_frames = 15
-input_fps = 30
-
-save_length = 3.6
-save_avi = False
-
-
-def get_select_distribution(m, n):
-    return [i * n // m + n // (2 * m) for i in range(m)]
+target_time = 3.6
 
 
 def run(m_data):
@@ -30,38 +23,30 @@ def run(m_data):
     filename_with_extension, label, directory_path = m_data
     filename, extension = os.path.splitext(filename_with_extension)
 
-    # Get frames
-    frames, fps = Preprocessor.read_video_frames(os.path.join(directory_path, filename_with_extension))
+    # Extract the wav from the video
+    video_path = os.path.join(directory_path, filename_with_extension)
+    temp_audio_path = f"./temp_{filename}.wav"
+    video_clip = me.VideoFileClip(video_path)
+    audio_clip = video_clip.audio
+    audio_clip.write_audiofile(temp_audio_path, codec='pcm_s16le')
+    video_clip.close()
 
-    # Get target frames
-    frame_n = int(save_length * input_fps)
-    selected_frames = get_select_distribution(save_frames, frame_n)
+    # Crop the wave
+    y, sr = librosa.core.load(temp_audio_path, sr=22050)
 
-    face_frames = []
-    target_frames = [frames[i] for i in selected_frames]
-    for frame in target_frames:
-        face_frame = Preprocessor.extract_face(frame)[0]
-        face_frame = cv2.resize(face_frame, (224, 224))
-        face_frames.append(face_frame)
+    target_length = int(sr * target_time)
+    remain = len(y) - target_length
+    y = y[remain // 2:-(remain - remain // 2)]
 
-    # Save the cropped video if you want.
-    if save_avi:
-        save_fps = save_frames // (frame_n // input_fps)
-        cropped_video_path = os.path.join(PREPROCESSED_DIRECTORY, f"{filename}_face_cropped.avi")
-        out = cv2.VideoWriter(cropped_video_path, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), save_fps, (224, 224))
+    sf.write(os.path.join(PREPROCESSED_DIRECTORY, f"{filename}_cropped.wav"), y, sr)
 
-        for face_frame in face_frames:
-            out.write(face_frame)
-        out.release()
-
-    # Save the numpy data for training.
-    cropped_npfile_path = os.path.join(PREPROCESSED_DIRECTORY, f"{filename}_face_cropped.npy")
-    np.save(os.path.join(PREPROCESSED_DIRECTORY, cropped_npfile_path), np.array(face_frames))
-    print(f"\t* Saved {cropped_npfile_path} from '{os.path.basename(directory_path)}'.")
+    # Remove the temp audio file.
+    if os.path.exists(temp_audio_path):
+        os.remove(temp_audio_path)
 
 
 def main():
-    print("=" * 40 + " Start preprocess to extract faces " + "=" * 40)
+    print("=" * 40 + " Start preprocess to extract audios" + "=" * 40)
     s_time = time.time()
 
     # Show current property

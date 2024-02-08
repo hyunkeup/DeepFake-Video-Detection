@@ -1,8 +1,8 @@
-import concurrent
 import os
-import time
-from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
+from concurrent.futures import ThreadPoolExecutor
+import concurrent
+import time
 
 import cv2
 import mediapipe as mp
@@ -18,7 +18,6 @@ NUM_OF_FRAMES: int = int(Property.get_property("square_of_root_num_of_frames"))
 ORIGINAL_HOME_DIRECTORY = Property.get_property("origin_home_directory")
 PARTITIONED_DIRECTORIES = Property.get_property("partitioned_directories")
 PREPROCESSED_DIRECTORY = Property.get_property("preprocessed_directory")
-THREAD_POOL_SIZE = Property.get_property("workers_thread_pool_size")
 
 mp_face_detection = mp.solutions.face_detection
 face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.8, model_selection=1)
@@ -46,7 +45,7 @@ class Preprocessor:
             metadata.append((filename, data[filename]["label"]))
 
         return metadata
-
+    
     @staticmethod
     def process_batch(frames, resize_shape):
         resized_frames = [
@@ -61,6 +60,7 @@ class Preprocessor:
         :param metadata_path: C:\workspace\deepfake-detection-challenge\train_sample_videos\metadata.json
         :return: the frames from the video
         """
+        print(video_path)
         cap = cv2.VideoCapture(video_path)
         # fps = cap.get(cv2.CAP_PROP_FPS)
         num_of_video_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -69,8 +69,8 @@ class Preprocessor:
             ret, frame = cap.read()
             if not ret:
                 break
-
-            # frame = cv2.resize(frame, (FRAME_SHAPE[0], FRAME_SHAPE[1]))
+            
+            frame = cv2.resize(frame, (FRAME_SHAPE[0], FRAME_SHAPE[1]))
             video_frames.append(frame)
         cap.release()
 
@@ -126,7 +126,7 @@ class Preprocessor:
         return face_images
 
     @staticmethod
-    def read_audio_from_video(video_path: str):
+    def read_audio_from_video(video_path: str, audio_fps=AUDIO_FPS):
         # Extract the audio file from the video
         filename, extension = os.path.splitext(os.path.basename(video_path))
         audio_path = f"./temp_{filename}.wav"
@@ -135,15 +135,16 @@ class Preprocessor:
         audio_clip.write_audiofile(audio_path, codec='pcm_s16le')
         video_clip.close()
 
-        # Resample the audio 44100 -> 16000
+        # Resample the audio 44100 -> 16000 (audio_fps)
         audio_frames, origin_audio_fps = torchaudio.load(audio_path)
-        audio_frames = torchaudio.functional.resample(audio_frames, orig_freq=origin_audio_fps, new_freq=AUDIO_FPS)
+        audio_frames = torchaudio.functional.resample(audio_frames, orig_freq=origin_audio_fps, new_freq=audio_fps)
 
         # Remove the temp audio file.
         if os.path.exists(audio_path):
             os.remove(audio_path)
 
         return audio_frames.T, AUDIO_FPS
+    
 
     @staticmethod
     def process_video(directory_path, filename_with_extension):
@@ -173,12 +174,15 @@ class Preprocessor:
 
         print("Done")
 
+
         dataset = []
-        with ThreadPoolExecutor(THREAD_POOL_SIZE) as executor:
+        with ThreadPoolExecutor() as executor:
             futures = [executor.submit(Preprocessor.process_video, *job) for job in jobs]
             for future in concurrent.futures.as_completed(futures):
                 dataset.extend(future.result())
 
+
         end = time.time()
         print(f"Dataset loaded in {end - start} seconds")
         return dataset
+
