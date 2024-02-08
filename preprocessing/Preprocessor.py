@@ -60,7 +60,7 @@ class Preprocessor:
         :param metadata_path: C:\workspace\deepfake-detection-challenge\train_sample_videos\metadata.json
         :return: the frames from the video
         """
-        print(video_path)
+        # print(video_path)
         cap = cv2.VideoCapture(video_path)
         # fps = cap.get(cv2.CAP_PROP_FPS)
         num_of_video_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -70,7 +70,7 @@ class Preprocessor:
             if not ret:
                 break
             
-            frame = cv2.resize(frame, (FRAME_SHAPE[0], FRAME_SHAPE[1]))
+            # frame = cv2.resize(frame, (FRAME_SHAPE[0], FRAME_SHAPE[1]))
             video_frames.append(frame)
         cap.release()
 
