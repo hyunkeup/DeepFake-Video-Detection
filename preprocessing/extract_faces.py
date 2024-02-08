@@ -4,6 +4,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 import cv2
 import numpy as np
+import torch
+from facenet_pytorch import MTCNN
 
 from preprocessing.Preprocessor import Preprocessor
 from property import Property
@@ -13,6 +15,9 @@ ORIGINAL_HOME_DIRECTORY = Property.get_property("origin_home_directory")
 PARTITIONED_DIRECTORIES = Property.get_property("partitioned_directories")
 THREAD_POOL_SIZE = Property.get_property("workers_thread_pool_size")
 PREPROCESSED_DIRECTORY = Property.get_property("preprocessed_directory")
+
+device = torch.device("cuda") if torch.cuda.is_available() else "cpu"
+mtcnn = MTCNN(image_size=(720, 1280), device=device)
 
 save_frames = 15
 input_fps = 30
@@ -26,38 +31,52 @@ def get_select_distribution(m, n):
 
 
 def run(m_data):
-    # Set the target image path
-    filename_with_extension, label, directory_path = m_data
-    filename, extension = os.path.splitext(filename_with_extension)
+    try:
+        # Set the target image path
+        filename_with_extension, label, directory_path = m_data
+        filename, extension = os.path.splitext(filename_with_extension)
 
-    # Get frames
-    frames, fps = Preprocessor.read_video_frames(os.path.join(directory_path, filename_with_extension))
+        # Get frames
+        frames, fps = Preprocessor.read_video_frames(os.path.join(directory_path, filename_with_extension))
 
-    # Get target frames
-    frame_n = int(save_length * input_fps)
-    selected_frames = get_select_distribution(save_frames, frame_n)
+        # Get target frames
+        frame_n = int(save_length * input_fps)
+        selected_frames = get_select_distribution(save_frames, frame_n)
 
-    face_frames = []
-    target_frames = [frames[i] for i in selected_frames]
-    for frame in target_frames:
-        face_frame = Preprocessor.extract_face(frame)[0]
-        face_frame = cv2.resize(face_frame, (224, 224))
-        face_frames.append(face_frame)
+        face_frames = []
+        target_frames = [frames[i] for i in selected_frames]
+        for frame in target_frames:
+            # Extract a face on the video.
+            image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            bbox = mtcnn.detect(image_rgb)
+            if bbox[0] is not None:
+                bbox = bbox[0][0]
+                bbox = [round(x) for x in bbox]
+                x1, y1, x2, y2 = bbox
+            try:
+                frame = frame[y1:y2, x1:x2, :]
+                frame = cv2.resize(frame, (224, 224))
+                face_frames.append(frame)
+            except UnboundLocalError as e:
+                face_frames.append(np.zeros((224, 224, 3), dtype=np.uint8))
 
-    # Save the cropped video if you want.
-    if save_avi:
-        save_fps = save_frames // (frame_n // input_fps)
-        cropped_video_path = os.path.join(PREPROCESSED_DIRECTORY, f"{filename}_face_cropped.avi")
-        out = cv2.VideoWriter(cropped_video_path, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), save_fps, (224, 224))
+        # Save the cropped video if you want.
+        if save_avi:
+            save_fps = save_frames // (frame_n // input_fps)
+            cropped_video_path = os.path.join(PREPROCESSED_DIRECTORY, f"{filename}_face_cropped.avi")
+            out = cv2.VideoWriter(cropped_video_path, cv2.VideoWriter_fourcc("M", "J", "P", "G"), save_fps, (224, 224))
 
-        for face_frame in face_frames:
-            out.write(face_frame)
-        out.release()
+            for face_frame in face_frames:
+                out.write(face_frame)
+            out.release()
 
-    # Save the numpy data for training.
-    cropped_npfile_path = os.path.join(PREPROCESSED_DIRECTORY, f"{filename}_face_cropped.npy")
-    np.save(os.path.join(PREPROCESSED_DIRECTORY, cropped_npfile_path), np.array(face_frames))
-    print(f"\t* Saved {cropped_npfile_path} from '{os.path.basename(directory_path)}'.")
+        # Save the numpy data for training.
+        cropped_npfile_path = os.path.join(PREPROCESSED_DIRECTORY, f"{filename}_face_cropped.npy")
+        np.save(os.path.join(PREPROCESSED_DIRECTORY, cropped_npfile_path), np.array(face_frames))
+        print(f"\t* Saved {cropped_npfile_path} from '{os.path.basename(directory_path)}'.")
+
+    except Exception as e:
+        print("ERROR:", e)
 
 
 def main():
