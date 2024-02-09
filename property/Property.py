@@ -1,12 +1,13 @@
 import json
 import os
-
-import dotenv
+import sys
 
 from utils.FileUtils import read_json_file
 
-dotenv.load_dotenv()
-ENV = os.environ.get("ENV").lower()
+# Python command line, `python3 extract_audios.py local`
+ENV = sys.argv[1].lower()
+if ENV not in ["local", "dev", "real"]:
+    raise Exception("Please add the correct environment name in the python command line. [`local', 'dev', 'real']")
 
 current_script_directory = os.path.dirname(os.path.abspath(__file__))
 root_directory = os.path.abspath(os.path.join(current_script_directory, '..'))

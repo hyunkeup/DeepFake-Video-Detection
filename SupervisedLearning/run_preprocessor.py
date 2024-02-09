@@ -7,7 +7,7 @@ import cv2
 from preprocessing.Preprocessor import Preprocessor
 from property import Property
 
-# Load .env data
+# Load property
 ORIGINAL_HOME_DIRECTORY = Property.get_property("origin_home_directory")
 PARTITIONED_DIRECTORIES = Property.get_property("partitioned_directories")
 THREAD_POOL_SIZE = Property.get_property("workers_thread_pool_size")
