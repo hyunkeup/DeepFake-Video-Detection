@@ -10,7 +10,7 @@ from facenet_pytorch import MTCNN
 from preprocessing.Preprocessor import Preprocessor
 from property import Property
 
-# Load .env data
+# Load property
 ORIGINAL_HOME_DIRECTORY = Property.get_property("origin_home_directory")
 PARTITIONED_DIRECTORIES = Property.get_property("partitioned_directories")
 THREAD_POOL_SIZE = Property.get_property("workers_thread_pool_size")
@@ -23,7 +23,7 @@ save_frames = 15
 input_fps = 30
 
 save_length = 3.6
-save_avi = True
+save_avi = False
 
 
 def get_select_distribution(m, n):

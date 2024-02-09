@@ -6,11 +6,14 @@
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 # Others
-pip install numpy opencv-python moviepy librosa python-dotenv facenet_pytorch
+pip install numpy opencv-python moviepy librosa facenet_pytorch
 ```
 
 ## Property
-1. You can update the environment that you want in .env file.
+1. {env} is from python command line.
+   * ```
+        python3 extract_audios.py dev     
+     ```
 2. See appsettings_{env}.json
 3. Call a function, get_property({key}) in Property class
 
