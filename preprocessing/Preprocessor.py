@@ -1,11 +1,10 @@
-import os
-from threading import Lock
-from concurrent.futures import ThreadPoolExecutor
 import concurrent
+import os
 import time
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 
 import cv2
-import mediapipe as mp
 import moviepy.editor as me
 import numpy as np
 import torchaudio
@@ -19,8 +18,8 @@ ORIGINAL_HOME_DIRECTORY = Property.get_property("origin_home_directory")
 PARTITIONED_DIRECTORIES = Property.get_property("partitioned_directories")
 PREPROCESSED_DIRECTORY = Property.get_property("preprocessed_directory")
 
-mp_face_detection = mp.solutions.face_detection
-face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.8, model_selection=1)
+# mp_face_detection = mp.solutions.face_detection
+# face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.8, model_selection=1)
 
 mp_lock = Lock()
 
@@ -45,7 +44,7 @@ class Preprocessor:
             metadata.append((filename, data[filename]["label"]))
 
         return metadata
-    
+
     @staticmethod
     def process_batch(frames, resize_shape):
         resized_frames = [
@@ -69,7 +68,7 @@ class Preprocessor:
             ret, frame = cap.read()
             if not ret:
                 break
-            
+
             # frame = cv2.resize(frame, (FRAME_SHAPE[0], FRAME_SHAPE[1]))
             video_frames.append(frame)
         cap.release()
@@ -95,35 +94,35 @@ class Preprocessor:
 
         return combined_video_frames
 
-    @staticmethod
-    def extract_face(frame):
-        """
-        Extract the faces from the frame
-        :param frame: frame
-        :return: frame
-        """
-        height, width, _ = frame.shape
-        image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        with mp_lock:
-            results = face_detection.process(image_rgb)
-
-        if not results.detections:
-            return None
-
-        face_images = []
-        for detection in results.detections:
-            box = detection.location_data.relative_bounding_box
-            ih, iw, _ = frame.shape
-            x, y, w, h = int(box.xmin * iw), int(box.ymin * ih), int(box.width * iw), int(box.height * ih)
-            face_image = frame[y:y + h, x:x + w]
-
-            if face_image.size != 0:
-                face_images.append(face_image)
-
-        if len(face_images) == 0:
-            return None
-
-        return face_images
+    # @staticmethod
+    # def extract_face(frame):
+    #     """
+    #     Extract the faces from the frame
+    #     :param frame: frame
+    #     :return: frame
+    #     """
+    #     height, width, _ = frame.shape
+    #     image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    #     with mp_lock:
+    #         results = face_detection.process(image_rgb)
+    #
+    #     if not results.detections:
+    #         return None
+    #
+    #     face_images = []
+    #     for detection in results.detections:
+    #         box = detection.location_data.relative_bounding_box
+    #         ih, iw, _ = frame.shape
+    #         x, y, w, h = int(box.xmin * iw), int(box.ymin * ih), int(box.width * iw), int(box.height * ih)
+    #         face_image = frame[y:y + h, x:x + w]
+    #
+    #         if face_image.size != 0:
+    #             face_images.append(face_image)
+    #
+    #     if len(face_images) == 0:
+    #         return None
+    #
+    #     return face_images
 
     @staticmethod
     def read_audio_from_video(video_path: str, audio_fps=AUDIO_FPS):
@@ -144,7 +143,6 @@ class Preprocessor:
             os.remove(audio_path)
 
         return audio_frames.T, AUDIO_FPS
-    
 
     @staticmethod
     def process_video(directory_path, filename_with_extension):
@@ -174,15 +172,12 @@ class Preprocessor:
 
         print("Done")
 
-
         dataset = []
         with ThreadPoolExecutor() as executor:
             futures = [executor.submit(Preprocessor.process_video, *job) for job in jobs]
             for future in concurrent.futures.as_completed(futures):
                 dataset.extend(future.result())
 
-
         end = time.time()
         print(f"Dataset loaded in {end - start} seconds")
         return dataset
-
