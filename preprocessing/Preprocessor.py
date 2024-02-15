@@ -18,8 +18,10 @@ ORIGINAL_HOME_DIRECTORY = Property.get_property("origin_home_directory")
 PARTITIONED_DIRECTORIES = Property.get_property("partitioned_directories")
 PREPROCESSED_DIRECTORY = Property.get_property("preprocessed_directory")
 
+
 # mp_face_detection = mp.solutions.face_detection
 # face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.8, model_selection=1)
+
 
 mp_lock = Lock()
 
@@ -47,9 +49,7 @@ class Preprocessor:
 
     @staticmethod
     def process_batch(frames, resize_shape):
-        resized_frames = [
-            cv2.resize(frame, resize_shape) for frame in frames
-        ]
+        resized_frames = [cv2.resize(frame, resize_shape) for frame in frames]
         return resized_frames
 
     @staticmethod
@@ -84,15 +84,22 @@ class Preprocessor:
         """
         height, width, _ = video_frames[0].shape
 
-        combined_video_frames = np.zeros((height * NUM_OF_FRAMES, width * NUM_OF_FRAMES, FRAME_SHAPE[2]),
-                                         dtype=np.uint8)
+        combined_video_frames = np.zeros(
+            (height * NUM_OF_FRAMES, width * NUM_OF_FRAMES, FRAME_SHAPE[2]),
+            dtype=np.uint8,
+        )
 
         for i, frame in enumerate(video_frames):
             r_idx = int(i / NUM_OF_FRAMES)
             c_idx = i % NUM_OF_FRAMES
-            combined_video_frames[c_idx * height: (c_idx + 1) * height, r_idx * width: (r_idx + 1) * width, :] = frame
+            combined_video_frames[
+                c_idx * height : (c_idx + 1) * height,
+                r_idx * width : (r_idx + 1) * width,
+                :,
+            ] = frame
 
         return combined_video_frames
+
 
     # @staticmethod
     # def extract_face(frame):
@@ -131,12 +138,14 @@ class Preprocessor:
         audio_path = f"./temp_{filename}.wav"
         video_clip = me.VideoFileClip(video_path)
         audio_clip = video_clip.audio
-        audio_clip.write_audiofile(audio_path, codec='pcm_s16le')
+        audio_clip.write_audiofile(audio_path, codec="pcm_s16le")
         video_clip.close()
 
         # Resample the audio 44100 -> 16000 (audio_fps)
         audio_frames, origin_audio_fps = torchaudio.load(audio_path)
-        audio_frames = torchaudio.functional.resample(audio_frames, orig_freq=origin_audio_fps, new_freq=audio_fps)
+        audio_frames = torchaudio.functional.resample(
+            audio_frames, orig_freq=origin_audio_fps, new_freq=audio_fps
+        )
 
         # Remove the temp audio file.
         if os.path.exists(audio_path):
@@ -154,9 +163,13 @@ class Preprocessor:
         audio_chunk_size = int(audio_fps * 0.2)
         num_of_units = int(len(video_frames) / video_chunk_size)
 
-        return [(video_frames[i * video_chunk_size: (i + 1) * video_chunk_size],
-                 audio_frames[i * audio_chunk_size: (i + 1) * audio_chunk_size])
-                for i in range(num_of_units)]
+        return [
+            (
+                video_frames[i * video_chunk_size : (i + 1) * video_chunk_size],
+                audio_frames[i * audio_chunk_size : (i + 1) * audio_chunk_size],
+            )
+            for i in range(num_of_units)
+        ]
 
     @staticmethod
     def load_dataset():
@@ -174,7 +187,9 @@ class Preprocessor:
 
         dataset = []
         with ThreadPoolExecutor() as executor:
-            futures = [executor.submit(Preprocessor.process_video, *job) for job in jobs]
+            futures = [
+                executor.submit(Preprocessor.process_video, *job) for job in jobs
+            ]
             for future in concurrent.futures.as_completed(futures):
                 dataset.extend(future.result())
 

@@ -49,6 +49,8 @@ def face_detect(video_paths, root):
     json_data = read_json_file(root + "metadata.json")
 
     # Detection
+    count_1 = 0
+    count_other = 0
     for i, (path, video_name) in enumerate(video_paths):
         # Read video
         video = mmcv.VideoReader(path)
@@ -68,6 +70,10 @@ def face_detect(video_paths, root):
                 max_faces = max(max_faces, len(boxes))
 
             json_data[video_name]["speaker_count"] = max_faces
+            if max_faces == 1:
+                count_1 += 1
+            else:
+                count_other += 1
             print(
                 f"Processing {i + 1}/{len(candidates)} videos: {video_name} with {max_faces} people."
             )
@@ -75,14 +81,15 @@ def face_detect(video_paths, root):
             print("ERROR:", e, "file: ", video_name)
 
     save_json_file(json_data, root + "new_metadata.json")
-    return
+    return count_1, count_other
 
 
 if __name__ == "__main__":
     s_time = time.time()
     root_dict = "../dataset/test_videos/"
     candidates = collect_mp4_paths_and_names(root_dict)
-    face_detect(candidates, root_dict)
+    count_1, count_other = face_detect(candidates, root_dict)
     e_time = time.time()
     print(f"Output new metadata file in {root_dict}")
-    print(f" Took {round((e_time - s_time) / 60, 3)} mins. ")
+    print(f"Total available video percent: {round(float(count_1) / float(count_other + count_1), 3)}")
+    print(f"Took {round((e_time - s_time) / 60, 3)} minutes. ")

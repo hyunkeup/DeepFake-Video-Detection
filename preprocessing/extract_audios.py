@@ -28,7 +28,7 @@ def run(m_data):
     temp_audio_path = f"./temp_{filename}.wav"
     video_clip = me.VideoFileClip(video_path)
     audio_clip = video_clip.audio
-    audio_clip.write_audiofile(temp_audio_path, codec='pcm_s16le')
+    audio_clip.write_audiofile(temp_audio_path, codec="pcm_s16le")
     video_clip.close()
 
     # Crop the wave
@@ -36,7 +36,7 @@ def run(m_data):
 
     target_length = int(sr * target_time)
     remain = len(y) - target_length
-    y = y[remain // 2:-(remain - remain // 2)]
+    y = y[remain // 2 : -(remain - remain // 2)]
 
     sf.write(os.path.join(PREPROCESSED_DIRECTORY, f"{filename}_cropped.wav"), y, sr)
 

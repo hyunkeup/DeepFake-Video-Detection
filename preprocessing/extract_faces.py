@@ -37,7 +37,9 @@ def run(m_data):
         filename, extension = os.path.splitext(filename_with_extension)
 
         # Get frames
-        frames, fps = Preprocessor.read_video_frames(os.path.join(directory_path, filename_with_extension))
+        frames, fps = Preprocessor.read_video_frames(
+            os.path.join(directory_path, filename_with_extension)
+        )
 
         # Get target frames
         frame_n = int(save_length * input_fps)
@@ -63,17 +65,31 @@ def run(m_data):
         # Save the cropped video if you want.
         if save_avi:
             save_fps = save_frames // (frame_n // input_fps)
-            cropped_video_path = os.path.join(PREPROCESSED_DIRECTORY, f"{filename}_face_cropped.avi")
-            out = cv2.VideoWriter(cropped_video_path, cv2.VideoWriter_fourcc("M", "J", "P", "G"), save_fps, (224, 224))
+            cropped_video_path = os.path.join(
+                PREPROCESSED_DIRECTORY, f"{filename}_face_cropped.avi"
+            )
+            out = cv2.VideoWriter(
+                cropped_video_path,
+                cv2.VideoWriter_fourcc("M", "J", "P", "G"),
+                save_fps,
+                (224, 224),
+            )
 
             for face_frame in face_frames:
                 out.write(face_frame)
             out.release()
 
         # Save the numpy data for training.
-        cropped_npfile_path = os.path.join(PREPROCESSED_DIRECTORY, f"{filename}_face_cropped.npy")
-        np.save(os.path.join(PREPROCESSED_DIRECTORY, cropped_npfile_path), np.array(face_frames))
-        print(f"\t* Saved {cropped_npfile_path} from '{os.path.basename(directory_path)}'.")
+        cropped_npfile_path = os.path.join(
+            PREPROCESSED_DIRECTORY, f"{filename}_face_cropped.npy"
+        )
+        np.save(
+            os.path.join(PREPROCESSED_DIRECTORY, cropped_npfile_path),
+            np.array(face_frames),
+        )
+        print(
+            f"\t* Saved {cropped_npfile_path} from '{os.path.basename(directory_path)}'."
+        )
 
     except Exception as e:
         print("ERROR:", e)
