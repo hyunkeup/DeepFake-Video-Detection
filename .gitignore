@@ -161,3 +161,7 @@ cython_debug/
 
 temp/
 /dataset/test_videos/
+Pipfile
+Pipfile.lock
+requirements.txt
+/dataset/raw_dataset/
