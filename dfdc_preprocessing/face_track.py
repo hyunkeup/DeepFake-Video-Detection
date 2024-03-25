@@ -4,7 +4,6 @@ import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import cv2
-import mmcv
 import torch
 from PIL import Image
 from facenet_pytorch import MTCNN
@@ -48,11 +47,16 @@ def save_json_file(data, output_file_path):
 
 
 def face_detect_single_video(path, video_name, mtcnn, num_frames_to_process):
-    video = mmcv.VideoReader(path)
-    frames = [
-        Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)) for frame in video
-    ]
-    if not frames:
+    frames = []
+    cap = cv2.VideoCapture(path)
+    while True:
+        ret, img = cap.read()
+        if not ret:
+            break
+        new_frame = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        frames.append(new_frame)
+
+    if len(frames) == 0:
         return video_name, -1
 
     # Ensure not to exceed the list length when randomly selecting frames
@@ -73,7 +77,7 @@ def face_detect_single_video(path, video_name, mtcnn, num_frames_to_process):
 
 
 def face_detect(video_paths, video_dict, root_dict, input_metadata_filename,
-                final_output_filename="final_metadata.json", num_frames_to_process=3, use_multithreading=False):
+                final_output_filename="final_metadata.json", num_frames_to_process=3, num_threads=1):
     """Detect people amount in the video."""
 
     # Check if gpu is available
@@ -87,9 +91,9 @@ def face_detect(video_paths, video_dict, root_dict, input_metadata_filename,
     final_json_path = os.path.join(root_dict, final_output_filename)
     final_json_data = read_json_file(final_json_path)
 
-    if use_multithreading:
+    if num_threads > 1:
         # Process in parallel using ThreadPoolExecutor
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(max_workers=num_threads) as executor:
             futures = [
                 executor.submit(
                     face_detect_single_video, path, video_name, mtcnn, num_frames_to_process
@@ -118,10 +122,12 @@ if __name__ == "__main__":
     root_dir = args.root_dir
     sub_folders = args.sub_folders
     input_json = "metadata.json"
-    final_json = os.path.join(args.result_path, "final_metadata.json")
+    final_json = "final_metadata.json"
+
+    num_threads = args.num_threads
 
     for sub in sub_folders:
         video_dir = os.path.join(root_dir, sub)
         candidates = collect_mp4_paths_and_names(video_dir)
-        face_detect(candidates, video_dir, root_dir, input_json, final_json)
+        face_detect(candidates, video_dir, root_dir, input_json, final_json, num_threads=num_threads)
         print(f"Output new metadata file from {video_dir}")

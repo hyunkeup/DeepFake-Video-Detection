@@ -1,8 +1,10 @@
+import os.path
 import shutil
+
 from moviepy.editor import *
 from tqdm import tqdm
-import json
 
+from dfdc_preprocessing.dfdc_args import get_args
 from dfdc_preprocessing.face_track import collect_mp4_paths_and_names, read_json_file
 
 
@@ -28,6 +30,7 @@ def calculate_label_ratio(data):
         real_ratio = fake_ratio = 0
 
     return real_ratio, fake_ratio, real_count
+
 
 def extract_audio_by_video(video_path, video_name, save_root):
     try:
@@ -77,30 +80,33 @@ def move_file(src_file_path, des_dir_path, sub_folder="train"):
 
 
 if __name__ == "__main__":
-    des_dir_path = "../datasets/raw_dataset/raw_video_audio_pairs/"
-    video_folder = "../datasets/raw_dataset/raw_videos/"
-    candidates = collect_mp4_paths_and_names(video_folder)
+    args = get_args()
+    root_dir = args.root_dir
+    sub_folders = args.sub_folders
+    dest_folders = args.save_dir
     meta_json_name = "final_metadata.json"
-    json_data = read_json_file(os.path.join(video_folder, meta_json_name))
 
-    for video_path, video_name in tqdm(candidates):
-        if json_data[video_name]["speaker_count"] == 1:
-            audio_output_path = extract_audio_by_video(video_path=video_path,
-                                                       video_name=video_name,
-                                                       save_root=video_folder)
-            if audio_output_path == "no_audio":
-                continue
-            sub_folder_name = None
-            if json_data[video_name]["label"] == "REAL":
-                sub_folder_name = "real"
-            else:
-                sub_folder_name = "fake"
-            move_file(video_path, des_dir_path, sub_folder=sub_folder_name)
-            move_file(audio_output_path, des_dir_path, sub_folder=sub_folder_name)
+    for sub_folder in sub_folders:
+        video_dir = os.path.join(root_dir, sub_folder)
+        candidates = collect_mp4_paths_and_names(video_dir)
+        json_data = read_json_file(os.path.join(video_dir, meta_json_name))
 
+        for video_path, video_name in tqdm(candidates):
+            if json_data[video_name]["speaker_count"] == 1:
+                audio_output_path = extract_audio_by_video(video_path=video_path,
+                                                           video_name=video_name,
+                                                           save_root=video_dir)
+                if audio_output_path == "no_audio":
+                    continue
+                sub_folder_name = None
+                if json_data[video_name]["label"] == "REAL":
+                    sub_folder_name = "real"
+                else:
+                    sub_folder_name = "fake"
+                move_file(video_path, dest_folders, sub_folder=sub_folder_name)
+                move_file(audio_output_path, dest_folders, sub_folder=sub_folder_name)
 
     # # Check dataset balanced
     # json_data = read_json_file("../datasets/final_metadata.json")
     # real_ratio, fake_ratio, real_count = calculate_label_ratio(json_data)
     # print(real_ratio, fake_ratio, real_count)
-
