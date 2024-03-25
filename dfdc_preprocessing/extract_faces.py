@@ -1,105 +1,137 @@
-# -*- coding: utf-8 -*-
 import os
-import numpy as np          
+import time
+from concurrent.futures import ThreadPoolExecutor
+
 import cv2
-from tqdm import tqdm
+import numpy as np
 import torch
 from facenet_pytorch import MTCNN
-device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
 
+from preprocessing import Preprocessor
+from dfdc_preprocessing.dfdc_args import get_args
 
-mtcnn = MTCNN(image_size=(720, 1280), device=device)
+device = torch.device("cuda") if torch.cuda.is_available() else "cpu"
+mtcnn = MTCNN(image_size=(1080, 1920), device=device)
 
-#mtcnn.to(device)
 save_frames = 15
 input_fps = 30
 
-save_length = 3.6 #seconds
-save_avi = True
+save_length = 3.6
+save_avi = False
 
-failed_videos = []
-root = '../datasets/raw_dataset/split_dataset'
 
-select_distributed = lambda m, n: [i*n//m + n//(2*m) for i in range(m)]
-n_processed = 0
-for sess in tqdm(sorted(os.listdir(root))):   
-    for filename in os.listdir(os.path.join(root, sess)):
-           
-        if filename.endswith('.mp4'):
+def get_select_distribution(m, n):
+    return [i * n // m + n // (2 * m) for i in range(m)]
+
+
+def run(m_data):
+    try:
+        # Set the target image path
+        filename_with_extension, label, directory_path = m_data
+        filename, extension = os.path.splitext(filename_with_extension)
+
+        # Get frames
+        frames, fps = Preprocessor.read_video_frames(
+            os.path.join(directory_path, filename_with_extension)
+        )
+
+        # Get target frames
+        frame_n = int(save_length * input_fps)
+        selected_frames = get_select_distribution(save_frames, frame_n)
+
+        face_frames = []
+        target_frames = [frames[i] for i in selected_frames]
+        for frame in target_frames:
+            # Extract a face on the video.
+            image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            bbox = mtcnn.detect(image_rgb)
+            if bbox[0] is not None:
+                bbox = bbox[0][0]
+                bbox = [round(x) for x in bbox]
+                x1, y1, x2, y2 = bbox
             try:
-                cap = cv2.VideoCapture(os.path.join(root, sess, filename))
-                #calculate length in frames
-                framen = 0
-                while True:
-                    i,q = cap.read()
-                    if not i:
-                        break
-                    framen += 1
-                cap = cv2.VideoCapture(os.path.join(root, sess, filename))
+                frame = frame[y1:y2, x1:x2, :]
+                frame = cv2.resize(frame, (224, 224))
+                face_frames.append(frame)
+            except UnboundLocalError as e:
+                face_frames.append(np.zeros((224, 224, 3), dtype=np.uint8))
 
-                if save_length*input_fps > framen:
-                    skip_begin = int((framen - (save_length*input_fps)) // 2)
-                    for i in range(skip_begin):
-                        _, im = cap.read()
+        # Save the cropped video if you want.
+        if save_avi:
+            save_fps = save_frames // (frame_n // input_fps)
+            cropped_video_path = os.path.join(
+                PREPROCESSED_DIRECTORY, f"{filename}_face_cropped.avi"
+            )
+            out = cv2.VideoWriter(
+                cropped_video_path,
+                cv2.VideoWriter_fourcc("M", "J", "P", "G"),
+                save_fps,
+                (224, 224),
+            )
 
-                framen = int(save_length*input_fps)
-                frames_to_select = select_distributed(save_frames,framen)
-                save_fps = save_frames // (framen // input_fps)
-                if save_avi:
-                    out = cv2.VideoWriter(os.path.join(root, sess, filename[:-4]+'_facecroppad.avi'),cv2.VideoWriter_fourcc('M','J','P','G'), save_fps, (224,224))
+            for face_frame in face_frames:
+                out.write(face_frame)
+            out.release()
 
-                numpy_video = []
-                success = 0
-                frame_ctr = 0
+        # Save the numpy data for training.
+        cropped_npfile_path = os.path.join(
+            PREPROCESSED_DIRECTORY, f"{filename}_face_cropped.npy"
+        )
+        np.save(
+            os.path.join(PREPROCESSED_DIRECTORY, cropped_npfile_path),
+            np.array(face_frames),
+        )
+        print(
+            f"\t* Saved {cropped_npfile_path} from '{os.path.basename(directory_path)}'."
+        )
 
-                while True:
-                    ret, im = cap.read()
-                    if not ret:
-                        break
-                    if frame_ctr not in frames_to_select:
-                        frame_ctr += 1
-                        continue
-                    else:
-                        frames_to_select.remove(frame_ctr)
-                        frame_ctr += 1
+    except Exception as e:
+        print("ERROR:", e)
 
-                    try:
-                        gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-                    except:
-                        failed_videos.append((sess, i))
-                        break
 
-                    temp = im[:,:,-1]
-                    im_rgb = im.copy()
-                    im_rgb[:,:,-1] = im_rgb[:,:,0]
-                    im_rgb[:,:,0] = temp
-                    im_rgb = torch.tensor(im_rgb)
-                    im_rgb = im_rgb.to(device)
+def main():
+    print("=" * 40 + " Start preprocess to extract faces " + "=" * 40)
+    s_time = time.time()
 
-                    bbox = mtcnn.detect(im_rgb)
-                    if bbox[0] is not None:
-                        bbox = bbox[0][0]
-                        bbox = [round(x) for x in bbox]
-                        x1, y1, x2, y2 = bbox
-                    im = im[y1:y2, x1:x2, :]
-                    im = cv2.resize(im, (224,224))
-                    if save_avi:
-                        out.write(im)
-                    numpy_video.append(im)
-                if len(frames_to_select) > 0:
-                    for i in range(len(frames_to_select)):
-                        if save_avi:
-                            out.write(np.zeros((224,224,3), dtype = np.uint8))
-                        numpy_video.append(np.zeros((224,224,3), dtype=np.uint8))
-                if save_avi:
-                    out.release()
-                np.save(os.path.join(root, sess, filename[:-4]+'_facecroppad.npy'), np.array(numpy_video))
-                if len(numpy_video) != 15:
-                    print('Error', sess, filename)
-            except Exception as e:
-                print("ERROR:", e, "file: ", filename)
-                            
-    n_processed += 1      
-    with open('processed.txt', 'a') as f:
-        f.write(sess + '\n')
-    print(failed_videos)
+    # Create the preprocessed directory
+    if not os.path.exists(PREPROCESSED_DIRECTORY):
+        print("Create the preprocessed directory: ", end="")
+        os.makedirs(PREPROCESSED_DIRECTORY)
+        print("Done")
+        print(f"\t* {PREPROCESSED_DIRECTORY}")
+
+    # Load metadata
+    print("Load metadata: ", end="")
+    jobs = []
+    for partitioned_directory in PARTITIONED_DIRECTORIES:
+        directory_path = os.path.join(ORIGINAL_HOME_DIRECTORY, partitioned_directory)
+        metadata_path = os.path.join(directory_path, METADATA_JSON)
+        metadata = Preprocessor.read_metadata(metadata_path)
+        jobs.append((directory_path, metadata_path, metadata))
+    print("Done")
+
+    # Print jobs
+    for _, metadata_path, metadata in jobs:
+        print(f"\t* The number of videos: {len(metadata)}, path: {metadata_path}.")
+
+    # Execute workers
+    print("Execute workers: ")
+    with ThreadPoolExecutor(max_workers=THREAD_POOL_SIZE) as executor:
+        for directory_path, _, metadata in jobs:
+            for data in metadata:
+                executor.submit(run, data + (directory_path,))
+
+    e_time = time.time()
+    print("=" * 40 + f" {round(e_time - s_time, 3)} seconds - Done. " + "=" * 40)
+
+
+if __name__ == "__main__":
+    args = get_args()
+    METADATA_JSON = "final_metadata.json"
+
+    ORIGINAL_HOME_DIRECTORY = args.root_dir
+    PARTITIONED_DIRECTORIES = args.sub_folders
+    THREAD_POOL_SIZE = args.num_threads
+    PREPROCESSED_DIRECTORY = f"preprocessed_{ORIGINAL_HOME_DIRECTORY}"
+
+    main()

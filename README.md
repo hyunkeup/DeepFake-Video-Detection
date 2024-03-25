@@ -17,7 +17,7 @@ The implementation includes several preprocessing steps to prepare the DFDC data
    - Script: `dfdc_preprocessing/face_track.py --root_dir {./full_dataset} --sub_folders dfdc_train_part_0 dfdc_train_part_1... --num_threads 1`
 
 2. **Extract Audio from Video**: We separate the audio component from the raw video samples.
-   - Script: `dfdc_preprocessing/prepare_raw_dataset.py --root_dir {./full_dataset} --save_dir {./raw_dataset} --sub_folders dfdc_train_part_0 dfdc_train_part_1...`
+   - Script: `dfdc_preprocessing/prepare_raw_dataset.py --root_dir {./full_dataset} --sub_folders dfdc_train_part_0 dfdc_train_part_1... --save_dir {./raw_dataset}`
 
 3. **Extract Cropped Face Segments**: Faces are cropped from the raw video and saved as `.npy` files for training.
    - Script: `dfdc_preprocessing/extract_faces.py`
