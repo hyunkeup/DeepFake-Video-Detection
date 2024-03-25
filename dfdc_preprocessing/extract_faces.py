@@ -24,16 +24,13 @@ def get_select_distribution(m, n):
     return [i * n // m + n // (2 * m) for i in range(m)]
 
 
-def run(m_data):
+def run(preprocessed_directory_path, video_path, video_name):
     try:
         # Set the target image path
-        filename_with_extension, label, directory_path = m_data
-        filename, extension = os.path.splitext(filename_with_extension)
+        filename, extension = os.path.splitext(video_name)
 
         # Get frames
-        frames, fps = Preprocessor.read_video_frames(
-            os.path.join(directory_path, filename_with_extension)
-        )
+        frames, fps = Preprocessor.read_video_frames(video_path)
 
         # Get target frames
         frame_n = int(save_length * input_fps)
@@ -74,16 +71,9 @@ def run(m_data):
             out.release()
 
         # Save the numpy data for training.
-        cropped_npfile_path = os.path.join(
-            PREPROCESSED_DIRECTORY, f"{filename}_face_cropped.npy"
-        )
-        np.save(
-            os.path.join(PREPROCESSED_DIRECTORY, cropped_npfile_path),
-            np.array(face_frames),
-        )
-        print(
-            f"\t* Saved {cropped_npfile_path} from '{os.path.basename(directory_path)}'."
-        )
+        cropped_npfile_path = os.path.join(preprocessed_directory_path, f"{filename}_face_cropped.npy")
+        np.save(cropped_npfile_path, np.array(face_frames))
+        print(f"\t* Saved {cropped_npfile_path} from '{os.path.basename(video_path)}'.")
 
     except Exception as e:
         print("ERROR:", e)
@@ -94,32 +84,22 @@ def main():
     s_time = time.time()
 
     # Create the preprocessed directory
-    if not os.path.exists(PREPROCESSED_DIRECTORY):
-        print("Create the preprocessed directory: ", end="")
-        os.makedirs(PREPROCESSED_DIRECTORY)
-        print("Done")
-        print(f"\t* {PREPROCESSED_DIRECTORY}")
+    for split_directory in ["real", "fake"]:
+        preprocessed_directory_path = os.path.join(PREPROCESSED_DIRECTORY, split_directory)
 
-    # Load metadata
-    print("Load metadata: ", end="")
-    jobs = []
-    for partitioned_directory in PARTITIONED_DIRECTORIES:
-        directory_path = os.path.join(ORIGINAL_HOME_DIRECTORY, partitioned_directory)
-        metadata_path = os.path.join(directory_path, METADATA_JSON)
-        metadata = Preprocessor.read_metadata(metadata_path)
-        jobs.append((directory_path, metadata_path, metadata))
-    print("Done")
+        if not os.path.exists(preprocessed_directory_path):
+            print("Create the preprocessed directory: ")
+            os.makedirs(preprocessed_directory_path)
+            print(f"\t* {preprocessed_directory_path}")
 
-    # Print jobs
-    for _, metadata_path, metadata in jobs:
-        print(f"\t* The number of videos: {len(metadata)}, path: {metadata_path}.")
+    for split_directory in ["real", "fake"]:
+        preprocessed_directory_path = os.path.join(PREPROCESSED_DIRECTORY, split_directory)
+        origin_directory_path = os.path.join(ORIGINAL_HOME_DIRECTORY, split_directory)
+        candidates = Preprocessor.collect_mp4_paths_and_names(origin_directory_path)
 
-    # Execute workers
-    print("Execute workers: ")
-    with ThreadPoolExecutor(max_workers=THREAD_POOL_SIZE) as executor:
-        for directory_path, _, metadata in jobs:
-            for data in metadata:
-                executor.submit(run, data + (directory_path,))
+        with ThreadPoolExecutor(max_workers=THREAD_POOL_SIZE) as executor:
+            for video_path, video_name in candidates:
+                executor.submit(run, preprocessed_directory_path, video_path, video_name)
 
     e_time = time.time()
     print("=" * 40 + f" {round(e_time - s_time, 3)} seconds - Done. " + "=" * 40)
@@ -127,11 +107,9 @@ def main():
 
 if __name__ == "__main__":
     args = get_args()
-    METADATA_JSON = "final_metadata.json"
 
     ORIGINAL_HOME_DIRECTORY = args.root_dir
-    PARTITIONED_DIRECTORIES = args.sub_folders
     THREAD_POOL_SIZE = args.num_threads
-    PREPROCESSED_DIRECTORY = f"preprocessed_{ORIGINAL_HOME_DIRECTORY}"
+    PREPROCESSED_DIRECTORY = args.save_dir
 
     main()
