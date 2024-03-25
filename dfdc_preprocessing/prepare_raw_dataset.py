@@ -5,7 +5,7 @@ from moviepy.editor import *
 from tqdm import tqdm
 
 from dfdc_preprocessing.dfdc_args import get_args
-from dfdc_preprocessing.face_track import collect_mp4_paths_and_names, read_json_file
+from preprocessing.Preprocessor import collect_mp4_paths_and_names, read_json_file
 
 
 # Function to calculate label ratio

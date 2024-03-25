@@ -14,7 +14,7 @@ pip install numpy opencv-python moviepy librosa facenet_pytorch
 The implementation includes several preprocessing steps to prepare the DFDC dataset for training:
 
 1. **Detect People Count in Videos**: We currently focus on videos featuring a single person. The detection results are saved in `final_metadata.json`.
-   - Script: `dfdc_preprocessing/face_track.py --root_dir {./full_dataset} --sub_folders dfdc_train_part_0 dfdc_train_part_1... --num_threads 1`
+   - Script: `dfdc_preprocessing/speaker_labeling.py --root_dir {./full_dataset} --sub_folders dfdc_train_part_0 dfdc_train_part_1... --num_threads 1`
 
 2. **Extract Audio from Video**: We separate the audio component from the raw video samples.
    - Script: `dfdc_preprocessing/prepare_raw_dataset.py --root_dir {./full_dataset} --sub_folders dfdc_train_part_0 dfdc_train_part_1... --save_dir {./raw_dataset}`

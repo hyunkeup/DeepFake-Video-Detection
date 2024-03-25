@@ -1,5 +1,6 @@
 import csv
 import json
+import os
 from threading import Lock
 
 import cv2
@@ -41,10 +42,22 @@ def read_json_file(file_path):
             return data
     except FileNotFoundError:
         print(f"Error: File not found - {file_path}")
+        return {}
     except json.JSONDecodeError:
         print(f"Error: JSON decoding failed for file - {file_path}")
+        return {}
     except Exception as e:
         print(f"Error: An unexpected error occurred - {str(e)}")
+        return {}
+
+
+def save_json_file(data, output_file_path):
+    try:
+        with open(output_file_path, "w") as file:
+            json.dump(data, file, indent=4)
+    except Exception as e:
+        print(f"Error: An unexpected error occurred - {str(e)}")
+        return {}
 
 
 def read_metadata(metadata_path: str) -> list:
@@ -59,6 +72,25 @@ def read_metadata(metadata_path: str) -> list:
         metadata.append((filename, data[filename]["label"]))
 
     return metadata
+
+
+def collect_mp4_paths_and_names(root_directory):
+    """
+    Collects paths and names of all .mp4 files in the given root directory and its subdirectories.
+
+    Parameters:
+    root_directory (str): The path to the root directory from which to start searching for .mp4 files.
+
+    Returns:
+    list of tuples: A list of tuples where each tuple contains the full path and the file name of an .mp4 file.
+    """
+    mp4_files = []
+    for root, dirs, files in os.walk(root_directory):
+        for file in files:
+            if file.endswith(".mp4"):
+                full_path = os.path.join(root, file)
+                mp4_files.append((full_path, file))
+    return mp4_files
 
 
 def process_batch(frames, resize_shape):
