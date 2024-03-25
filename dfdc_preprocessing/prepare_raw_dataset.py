@@ -57,7 +57,7 @@ def extract_audio_by_video(video_path, video_name, save_root):
         return "no_audio"
 
 
-def move_file(src_file_path, des_dir_path, sub_folder="train"):
+def transfer_file(src_file_path, des_dir_path, sub_folder="train", transfer_type="move"):
     # Check data type is for training or not
     des_dir_path = os.path.join(des_dir_path, sub_folder)
 
@@ -71,7 +71,12 @@ def move_file(src_file_path, des_dir_path, sub_folder="train"):
         # Construct the full destination file path
         des_file_path = os.path.join(des_dir_path, file_name)
         # Move the file
-        shutil.move(src_file_path, des_file_path)
+        if transfer_type == "move":
+            shutil.move(src_file_path, des_file_path)
+        elif transfer_type == "copy":
+            shutil.copy(src_file_path, des_file_path)
+        else:
+            raise Exception(f"The transfer_type is not correct. transfer_type: {transfer_type}")
         return True
 
     except Exception as e:
@@ -103,8 +108,8 @@ if __name__ == "__main__":
                     sub_folder_name = "real"
                 else:
                     sub_folder_name = "fake"
-                move_file(video_path, dest_folders, sub_folder=sub_folder_name)
-                move_file(audio_output_path, dest_folders, sub_folder=sub_folder_name)
+                transfer_file(video_path, dest_folders, sub_folder=sub_folder_name, transfer_type="copy")
+                transfer_file(audio_output_path, dest_folders, sub_folder=sub_folder_name, transfer_type="move")
 
     # # Check dataset balanced
     # json_data = read_json_file("../datasets/final_metadata.json")

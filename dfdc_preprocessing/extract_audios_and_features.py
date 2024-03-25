@@ -3,11 +3,15 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 import librosa
+import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 import moviepy.editor as me
 import soundfile as sf
+import torchaudio
+import torchaudio.transforms as T
+
 from dfdc_preprocessing.dfdc_args import get_args
 from preprocessing.Preprocessor import collect_mp4_paths_and_names
-
 
 target_time = 3.6
 
@@ -20,7 +24,7 @@ def run(preprocessed_directory_path, video_path, video_name):
     temp_audio_path = f"./temp_{filename}.wav"
     video_clip = me.VideoFileClip(video_path)
     audio_clip = video_clip.audio
-    audio_clip.write_audiofile(temp_audio_path, codec="pcm_s16le")
+    audio_clip.write_audiofile(temp_audio_path, codec="pcm_s16le", verbose=False)
     video_clip.close()
 
     # Crop the wave
@@ -28,13 +32,26 @@ def run(preprocessed_directory_path, video_path, video_name):
 
     target_length = int(sr * target_time)
     remain = len(y) - target_length
-    y = y[remain // 2 : -(remain - remain // 2)]
+    y = y[remain // 2: -(remain - remain // 2)]
 
-    sf.write(os.path.join(preprocessed_directory_path, f"{filename}_cropped.wav"), y, sr)
+    cropped_audio_path = os.path.join(preprocessed_directory_path, f"{filename}_cropped.wav")
+    sf.write(cropped_audio_path, y, sr)
 
     # Remove the temp audio file.
     if os.path.exists(temp_audio_path):
         os.remove(temp_audio_path)
+
+    # Extract feature
+    cropped_feature_path = os.path.join(preprocessed_directory_path, f"{filename}_cropped.png")
+    audio, fs = torchaudio.load(cropped_audio_path)
+    mfcc_transform = T.MFCC(sample_rate=fs)
+    mfcc = mfcc_transform(audio)
+
+    # Create feature image
+    plt.clf()
+    plt.axis("off")
+    plt.imshow(mfcc[0], interpolation="nearest", origin="lower", aspect="auto")
+    plt.savefig(cropped_feature_path, bbox_inches='tight', pad_inches=0)
 
 
 def main():
