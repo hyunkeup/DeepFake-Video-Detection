@@ -7,8 +7,8 @@ import numpy as np
 import torch
 from facenet_pytorch import MTCNN
 
-from preprocessing import Preprocessor
 from dfdc_preprocessing.dfdc_args import get_args
+from preprocessing.Preprocessor import collect_mp4_paths_and_names, read_video_frames
 
 device = torch.device("cuda") if torch.cuda.is_available() else "cpu"
 mtcnn = MTCNN(image_size=(1080, 1920), device=device)
@@ -30,7 +30,7 @@ def run(preprocessed_directory_path, video_path, video_name):
         filename, extension = os.path.splitext(video_name)
 
         # Get frames
-        frames, fps = Preprocessor.read_video_frames(video_path)
+        frames, fps = read_video_frames(video_path)
 
         # Get target frames
         frame_n = int(save_length * input_fps)
@@ -92,10 +92,12 @@ def main():
             os.makedirs(preprocessed_directory_path)
             print(f"\t* {preprocessed_directory_path}")
 
+    # Execute workers
+    print("Execute workers: ")
     for split_directory in ["real", "fake"]:
         preprocessed_directory_path = os.path.join(PREPROCESSED_DIRECTORY, split_directory)
         origin_directory_path = os.path.join(ORIGINAL_HOME_DIRECTORY, split_directory)
-        candidates = Preprocessor.collect_mp4_paths_and_names(origin_directory_path)
+        candidates = collect_mp4_paths_and_names(origin_directory_path)
 
         with ThreadPoolExecutor(max_workers=THREAD_POOL_SIZE) as executor:
             for video_path, video_name in candidates:
