@@ -23,7 +23,10 @@ def face_detect_single_video(path, video_name, mtcnn, num_frames_to_process):
     try:
         max_faces = 0
         for frame in selected_frames:
-            boxes, _ = mtcnn.detect(frame)
+            boxes, probs = mtcnn.detect(frame)
+            if boxes is None:
+                continue
+            boxes = boxes[probs > 0.9]
             max_faces = max(max_faces, len(boxes) if boxes is not None else 0)
 
         print(f"Processed video: {video_name} has {max_faces} people.")

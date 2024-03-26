@@ -71,9 +71,9 @@ def run(preprocessed_directory_path, video_path, video_name):
             out.release()
 
         # Save the numpy data for training.
-        cropped_npfile_path = os.path.join(preprocessed_directory_path, f"{filename}_face_cropped.npy")
-        np.save(cropped_npfile_path, np.array(face_frames))
-        print(f"\t* Saved {cropped_npfile_path} from '{os.path.basename(video_path)}'.")
+        cropped_np_file_path = os.path.join(preprocessed_directory_path, f"{filename}_face_cropped.npy")
+        np.save(cropped_np_file_path, np.array(face_frames))
+        print(f"\t* Saved {cropped_np_file_path} from '{os.path.basename(video_path)}'.")
 
     except Exception as e:
         print("ERROR:", e)

@@ -1,11 +1,13 @@
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 
+import cv2
 import librosa
-import matplotlib.pylab as plt
 import matplotlib.pyplot as plt
 import moviepy.editor as me
+import numpy as np
 import soundfile as sf
 import torchaudio
 import torchaudio.transforms as T
@@ -14,6 +16,8 @@ from dfdc_preprocessing.dfdc_args import get_args
 from preprocessing.Preprocessor import collect_mp4_paths_and_names
 
 target_time = 3.6
+
+plt_lock = Lock()
 
 
 def run(preprocessed_directory_path, video_path, video_name):
@@ -34,7 +38,7 @@ def run(preprocessed_directory_path, video_path, video_name):
     remain = len(y) - target_length
     y = y[remain // 2: -(remain - remain // 2)]
 
-    cropped_audio_path = os.path.join(preprocessed_directory_path, f"{filename}_cropped.wav")
+    cropped_audio_path = os.path.join(preprocessed_directory_path, f"{filename}_audio_cropped.wav")
     sf.write(cropped_audio_path, y, sr)
 
     # Remove the temp audio file.
@@ -42,16 +46,24 @@ def run(preprocessed_directory_path, video_path, video_name):
         os.remove(temp_audio_path)
 
     # Extract feature
-    cropped_feature_path = os.path.join(preprocessed_directory_path, f"{filename}_cropped.png")
+    cropped_feature_path = os.path.join(preprocessed_directory_path, f"{filename}_audio_cropped.png")
     audio, fs = torchaudio.load(cropped_audio_path)
     mfcc_transform = T.MFCC(sample_rate=fs)
     mfcc = mfcc_transform(audio)
 
     # Create feature image
-    plt.clf()
-    plt.axis("off")
-    plt.imshow(mfcc[0], interpolation="nearest", origin="lower", aspect="auto")
-    plt.savefig(cropped_feature_path, bbox_inches='tight', pad_inches=0)
+    with plt_lock:
+        plt.clf()
+        plt.axis("off")
+        plt.imshow(mfcc[0], interpolation="nearest", origin="lower", aspect="auto")
+        plt.savefig(cropped_feature_path, bbox_inches='tight', pad_inches=0)
+
+    # Save npy
+    frame = cv2.imread(cropped_feature_path)
+    frame = frame.resize(244, 244)
+    cropped_np_file_path = os.path.join(preprocessed_directory_path, f"{filename}_audio_cropped.npy")
+    np.save(cropped_np_file_path, np.array(frame))
+    print(f"\t* Saved {cropped_np_file_path} from '{os.path.basename(video_path)}'.")
 
 
 def main():
