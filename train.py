@@ -42,7 +42,10 @@ def train_epoch_multimodal(epoch, data_loader, model, criterion, optimizer, opt,
                 elif opt.mask == 'softhard':
                     coefficients = torch.randint(low=0, high=100, size=(audio_inputs.size(0), 1, 1)) / 100
                     vision_coefficients = 1 - coefficients
-                    coefficients = coefficients.repeat(1, audio_inputs.size(1), audio_inputs.size(2))
+                    coefficients = coefficients.unsqueeze(-1).repeat(1,
+                                                                     audio_inputs.size(1),
+                                                                     audio_inputs.size(2),
+                                                                     audio_inputs.size(3))
                     vision_coefficients = vision_coefficients.unsqueeze(-1).unsqueeze(-1).repeat(1,
                                                                                                  visual_inputs.size(1),
                                                                                                  visual_inputs.size(2),
@@ -61,9 +64,9 @@ def train_epoch_multimodal(epoch, data_loader, model, criterion, optimizer, opt,
                     visual_inputs = visual_inputs[shuffle]
                     targets = targets[shuffle]
 
-        visual_inputs = visual_inputs.permute(0, 2, 1, 3, 4)
-        visual_inputs = visual_inputs.reshape(visual_inputs.shape[0] * visual_inputs.shape[1], visual_inputs.shape[2],
-                                              visual_inputs.shape[3], visual_inputs.shape[4])
+        # visual_inputs = visual_inputs.permute(0, 2, 1, 3, 4)
+        # visual_inputs = visual_inputs.reshape(visual_inputs.shape[0] * visual_inputs.shape[1], visual_inputs.shape[2],
+        #                                       visual_inputs.shape[3], visual_inputs.shape[4])
 
         audio_inputs = Variable(audio_inputs)
         visual_inputs = Variable(visual_inputs)

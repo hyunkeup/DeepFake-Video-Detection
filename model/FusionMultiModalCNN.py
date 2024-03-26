@@ -13,10 +13,11 @@ def conv1d_block(in_channels, out_channels, kernel_size=3, stride=1, padding='sa
 
 
 class VideoMarlin(nn.Module):
-    def __init__(self, input_channels=10):
+    def __init__(self, input_channels=10, marlin_model="marlin_vit_base_ytf"):
         super(VideoMarlin, self).__init__()
 
-        self.marlin = Marlin.from_online("marlin_vit_base_ytf")
+        # self.marlin = Marlin.from_online("marlin_vit_base_ytf")
+        self.marlin = Marlin.from_online(marlin_model)
 
         self.conv1d_0 = conv1d_block(input_channels, 64)
         self.conv1d_1 = conv1d_block(64, 64)
@@ -49,7 +50,8 @@ class AudioResNet18(nn.Module):
     def __init__(self, input_channels=10):
         super(AudioResNet18, self).__init__()
 
-        self.resnet18 = resnet18()
+        pretrained_model = resnet18()
+        self.resnet18 = nn.Sequential(*list(pretrained_model.children())[:-1])
 
         self.conv1d_0 = conv1d_block_audio(input_channels, 64)
         self.conv1d_1 = conv1d_block_audio(64, 128)
@@ -58,7 +60,7 @@ class AudioResNet18(nn.Module):
 
     def forward_features(self, x):
         x = self.resnet18(x)
-        return self.resnet18.fc
+        return x
 
     def forward_stage1(self, x):
         x = self.conv1d_0(x)
@@ -72,7 +74,7 @@ class AudioResNet18(nn.Module):
 
 
 class FusionMultiModalCNN(nn.Module):
-    def __init__(self, num_classes=2, fusion="it", e_dim=128, input_dim_video=128, input_dim_audio=128, num_heads=1):
+    def __init__(self, num_classes=2, fusion="it", e_dim=128, input_dim_video=128, input_dim_audio=128, num_heads=1, marlin_model="marlin_vit_base_ytf"):
         """
         reference: https://github.com/katerynaCh/multimodal-emotion-recognition/tree/main
 
@@ -90,7 +92,7 @@ class FusionMultiModalCNN(nn.Module):
         self.input_dim_audio = input_dim_audio
 
         # MARLIN
-        self.video_model = VideoMarlin(input_channels=10)
+        self.video_model = VideoMarlin(input_channels=10, marlin_model=marlin_model)
         # ResNet18?
         self.audio_model = AudioResNet18(input_channels=10)
 
@@ -118,14 +120,14 @@ class FusionMultiModalCNN(nn.Module):
             nn.Linear(e_dim * 2, num_classes)
         )
 
-    def _forward_lt(self, x_video, x_audio):
+    def _forward_lt(self, x_audio, x_video):
         pass
 
-    def _forward_it(self, x_video, x_audio):
+    def _forward_it(self, x_audio, x_video):
         # TODO: focus "it"
         # Extract features
-        x_video = self.video_model.forward_features(x_video)
         x_audio = self.audio_model.forward_features(x_audio)
+        x_video = self.video_model.forward_features(x_video)
 
         # Stage 1
         x_video = self.video_model.forward_stage1(x_video)
@@ -155,22 +157,22 @@ class FusionMultiModalCNN(nn.Module):
         x1 = self.classifier(x)
         return x1
 
-    def _forward_ia(self, x_video, x_audio):
+    def _forward_ia(self, x_audio, x_video):
         pass
 
-    def forward(self, x_video, x_audio):
+    def forward(self, x_audio, x_video):
         if self.fusion == "lt":
-            return self._forward_lt(x_video=x_video, x_audio=x_audio)
+            return self._forward_lt(x_audio=x_audio, x_video=x_video)
 
         if self.fusion == "it":
-            return self._forward_it(x_video=x_video, x_audio=x_audio)
+            return self._forward_it(x_audio=x_audio, x_video=x_video)
 
         if self.fusion == "ia":
-            return self._forward_ia(x_video=x_video, x_audio=x_audio)
+            return self._forward_ia(x_audio=x_audio, x_video=x_video)
 
 
-def generate_model(device, num_classes=2, fusion="it", num_heads=1):
-    model = FusionMultiModalCNN(num_classes=num_classes, fusion=fusion, num_heads=num_heads)
+def generate_model(device, num_classes=2, fusion="it", num_heads=1, marlin_model="marlin_vit_base_ytf"):
+    model = FusionMultiModalCNN(num_classes=num_classes, fusion=fusion, num_heads=num_heads, marlin_model=marlin_model)
 
     if device != 'cpu':
         model = model.to(device)
@@ -180,8 +182,3 @@ def generate_model(device, num_classes=2, fusion="it", num_heads=1):
         print("Total number of trainable parameters: ", pytorch_total_params)
 
     return model, model.parameters()
-
-
-if __name__ == "__main__":
-    model = FusionMultiModalCNN()
-    print(model)

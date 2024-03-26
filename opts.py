@@ -43,7 +43,7 @@ def parse_opts():
                         help='If 1, range of inputs is [0-255]. If 255, range of inputs is [0-1].')
 
     parser.add_argument('--manual_seed', default=1, type=int, help='Manually set random seed')
-    parser.add_argument('--fusion', default='ia', type=str, help='fusion type: lt | it | ia')
+    parser.add_argument('--fusion', default='it', type=str, help='fusion type: lt | it | ia')
     parser.add_argument('--mask', type=str, help='dropout type : softhard | noise | nodropout', default='softhard')
 
     # Running options
@@ -55,7 +55,7 @@ def parse_opts():
                         help='If false, test is not performed.')
 
     # Marlin
-    parser.add_argument('--marlin_path', default=None, type=str,
+    parser.add_argument('--marlin_model', default="marlin_vit_base_ytf", type=str,
                         help='Marlin path. If it is None, it will use online release.')
 
     return parser.parse_args()

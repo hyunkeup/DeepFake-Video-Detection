@@ -17,7 +17,7 @@ The implementation includes several preprocessing steps to prepare the DFDC data
 1. **Detect People Count in Videos**: We currently focus on videos featuring a single person. The detection results are
    saved in `final_metadata.json`.
     -
-   Script: `dfdc_preprocessing/speaker_labeling.py --root_dir {./full_dataset} --sub_folders {dfdc_train_part_0 dfdc_train_part_1...} --num_threads {1}`
+   Script: `dfdc_preprocessing/speaker_labeling.py --root_dir {./full_dataset} --sub_folders {dfdc_train_part_0 dfdc_train_part_1...} --num_threads {4}`
 
 2. **Extract Audio from Video**: We separate the audio component from the raw video samples.
    -
@@ -35,6 +35,11 @@ The implementation includes several preprocessing steps to prepare the DFDC data
 5. **Create Annotations**: We generate `{--root_dir}/annotation.txt` files from the processed dataset for use
    with PyTorch's DataLoader.
     - Script: `dfdc_preprocessing/create_annotations.py --root_dir {./prepared_raw_sample_videos}`
+
+## Run
+```
+main.py --annotation_path {./annotations.txt} --n_threads {4} --marlin_model {marlin_vit_small_ytf} --train --test --val
+```
 
 ## Original Dataset information from DFDC
 

@@ -13,7 +13,7 @@ from preprocessing.Preprocessor import collect_mp4_paths_and_names, read_video_f
 device = torch.device("cuda") if torch.cuda.is_available() else "cpu"
 mtcnn = MTCNN(image_size=(1080, 1920), device=device)
 
-save_frames = 15
+save_frames = 16
 input_fps = 30
 
 save_length = 3.6
