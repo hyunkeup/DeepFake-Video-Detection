@@ -107,11 +107,13 @@ def main():
         best_prec1 = 0
         best_loss = 1e10
         if opt.resume_path:
-            print('loading checkpoint {}'.format(opt.result_path))
-            checkpoint = torch.load(opt.result_path)
+            print('loading checkpoint {}'.format(opt.resume_path))
+            checkpoint = torch.load(opt.resume_path)
+            assert opt.arch == checkpoint['arch']
             best_prec1 = checkpoint['best_prec1']
             opt.begin_epoch = checkpoint['epoch']
             model.load_state_dict(checkpoint['state_dict'])
+
 
         for epoch in range(opt.begin_epoch, opt.n_epochs + 1):
             if opt.train:
