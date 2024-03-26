@@ -99,18 +99,17 @@ def main():
             )
 
             # Logger
-            val_logger = Logger(os.path.join(opt.result_path, 'val' + str(fold) + '.log'),
-                                ['epoch', 'loss', 'prec1', 'prec5', 'lr'])
-            test_logger = Logger(os.path.join(opt.result_path, 'val' + str(fold) + '.log'),
-                                 ['epoch', 'loss', 'prec1', 'prec5', 'lr'])
+            val_logger = Logger(
+                os.path.join(opt.result_path, 'val' + str(fold) + '.log'), ['epoch', 'loss', 'prec1', 'prec5', 'auroc'])
 
-        ######################################################################
+        ################################################################################################################
         # Load previous model if there is.
         best_prec1 = 0
         best_loss = 1e10
         if opt.resume_path:
-            print('loading checkpoint {}'.format(opt.result_path))
-            checkpoint = torch.load(opt.result_path)
+            print('loading checkpoint {}'.format(opt.resume_path))
+            checkpoint = torch.load(opt.resume_path)
+            assert opt.arch == checkpoint['arch']
             best_prec1 = checkpoint['best_prec1']
             opt.begin_epoch = checkpoint['epoch']
             model.load_state_dict(checkpoint['state_dict'])
@@ -129,21 +128,22 @@ def main():
                     'optimizer': optimizer.state_dict(),
                     'best_prec1': best_prec1
                 }
-                save_checkpoint(state, False, opt, fold)
+                # save_checkpoint(state, False, opt, fold)
 
             if opt.val:
-                validation_loss, prec1 = val_epoch(epoch=epoch, data_loader=val_loader, model=model,
-                                                   criterion=criterion,
-                                                   opt=opt, logger=val_logger)
+                validation_loss, prec1, final_auroc = val_epoch(epoch=epoch, data_loader=val_loader, model=model,
+                                                                criterion=criterion, opt=opt, logger=val_logger)
                 is_best = prec1 > best_prec1
                 best_prec1 = max(prec1, best_prec1)
                 state = {
                     'epoch': epoch,
-                    'arch': opt.model,
+                    'arch': opt.arch,
                     'state_dict': model.state_dict(),
                     'optimizer': optimizer.state_dict(),
-                    'best_prec1': best_prec1
+                    'best_prec1': best_prec1,
+                    'auroc': final_auroc,
                 }
+
                 save_checkpoint(state, is_best, opt, fold)
 
         # Test
@@ -169,8 +169,8 @@ def main():
                 num_workers=opt.n_threads,
                 pin_memory=True)
 
-            test_loss, test_prec1 = val_epoch(10000, test_loader, model, criterion, opt,
-                                              test_logger)
+            test_loss, test_prec1, final_auroc = val_epoch(epoch=10000, data_loader=test_loader, model=model,
+                                                           criterion=criterion, opt=opt, logger=test_logger)
 
             with open(os.path.join(opt.result_path, 'test_set_bestval' + str(fold) + '.txt'), 'a') as f:
                 f.write('Prec1: ' + str(test_prec1) + '; Loss: ' + str(test_loss))
