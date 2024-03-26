@@ -1,12 +1,17 @@
 '''
 This code is based on https://github.com/okankop/Efficient-3DCNNs
 '''
-import time
 
+from marlin_pytorch import Marlin
+
+'''
+This code is based on https://github.com/okankop/Efficient-3DCNNs
+'''
 import torch
 from torch.autograd import Variable
-
+import time
 from utils import AverageMeter, calculate_accuracy
+from torchmetrics.classification import BinaryAUROC
 
 
 def val_epoch_multimodal(epoch, data_loader, model, criterion, opt, logger, modality='both', dist=None):
@@ -16,11 +21,16 @@ def val_epoch_multimodal(epoch, data_loader, model, criterion, opt, logger, moda
     assert modality in ['both', 'audio', 'video']
     model.eval()
 
+    marlin = Marlin.from_online(opt.marlin_model)
+
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
+
+    # Initialize the AUROC metric
+    auroc = BinaryAUROC()
 
     end_time = time.time()
     for i, (inputs_audio, inputs_visual, targets) in enumerate(data_loader):
@@ -51,17 +61,27 @@ def val_epoch_multimodal(epoch, data_loader, model, criterion, opt, logger, moda
 
             elif dist == 'zeros':
                 inputs_audio = torch.zeros(inputs_audio.size())
-        inputs_visual = inputs_visual.permute(0, 2, 1, 3, 4)
-        inputs_visual = inputs_visual.reshape(inputs_visual.shape[0] * inputs_visual.shape[1], inputs_visual.shape[2],
-                                              inputs_visual.shape[3], inputs_visual.shape[4])
+
+        # inputs_visual = inputs_visual.permute(0, 2, 1, 3, 4)
+        # inputs_visual = inputs_visual.reshape(inputs_visual.shape[0] * inputs_visual.shape[1], inputs_visual.shape[2],
+        #                                       inputs_visual.shape[3], inputs_visual.shape[4])
+
+        inputs_visual = marlin.extract_features(inputs_visual)
 
         targets = targets.to(opt.device)
         with torch.no_grad():
             inputs_visual = Variable(inputs_visual)
             inputs_audio = Variable(inputs_audio)
             targets = Variable(targets)
-        outputs = model(inputs_audio, inputs_visual)
-        loss = criterion(outputs, targets)
+            outputs = model(inputs_audio, inputs_visual)
+            loss = criterion(outputs, targets)
+
+        # Use sigmoid to get probabilities
+        probs = torch.sigmoid(outputs)
+
+        # Update AUROC metric
+        auroc.update(probs[:, 1], targets.int())
+
         prec1, prec5 = calculate_accuracy(outputs.data, targets.data, topk=(1, 5))
         top1.update(prec1, inputs_audio.size(0))
         top5.update(prec5, inputs_audio.size(0))
@@ -71,30 +91,38 @@ def val_epoch_multimodal(epoch, data_loader, model, criterion, opt, logger, moda
         batch_time.update(time.time() - end_time)
         end_time = time.time()
 
-        print('Epoch: [{0}][{1}/{2}]\t'
-              'Time {batch_time.val:.5f} ({batch_time.avg:.5f})\t'
-              'Data {data_time.val:.5f} ({data_time.avg:.5f})\t'
-              'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-              'Prec@1 {top1.val:.5f} ({top1.avg:.5f})\t'
-              'Prec@5 {top5.val:.5f} ({top5.avg:.5f})'.format(
-            epoch,
-            i + 1,
-            len(data_loader),
-            batch_time=batch_time,
-            data_time=data_time,
-            loss=losses,
-            top1=top1,
-            top5=top5))
+        if i % 10 == 0:
+            print('Epoch: [{0}][{1}/{2}]\t'
+                  'Time {batch_time.val:.5f} ({batch_time.avg:.5f})\t'
+                  'Data {data_time.val:.5f} ({data_time.avg:.5f})\t'
+                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                  'Prec@1 {top1.val:.5f} ({top1.avg:.5f})\t'
+                  'Prec@5 {top5.val:.5f} ({top5.avg:.5f})'.format(
+                epoch,
+                i + 1,
+                len(data_loader),
+                batch_time=batch_time,
+                data_time=data_time,
+                loss=losses,
+                top1=top1,
+                top5=top5))
+
+    # Compute the final AUROC value
+    final_auroc = auroc.compute()
+    print(f'Final AUROC: {final_auroc:.4f}')
+
+    # Reset AUROC for future validation calls
+    auroc.reset()
 
     logger.log({'epoch': epoch,
                 'loss': losses.avg.item(),
                 'prec1': top1.avg.item(),
-                'prec5': top5.avg.item()})
+                'prec5': top5.avg.item(),
+                'auroc': final_auroc.item()})
 
-    return losses.avg.item(), top1.avg.item()
+    return losses.avg.item(), top1.avg.item(), final_auroc.item()
 
 
 def val_epoch(epoch, data_loader, model, criterion, opt, logger, modality='both', dist=None):
-    print('validation at epoch {}'.format(epoch))
     if opt.model == 'multimodalcnn':
         return val_epoch_multimodal(epoch, data_loader, model, criterion, opt, logger, modality, dist=dist)
