@@ -102,7 +102,7 @@ def main():
             val_logger = Logger(
                 os.path.join(opt.result_path, 'val' + str(fold) + '.log'), ['epoch', 'loss', 'prec1', 'prec5', 'auroc'])
 
-        ######################################################################
+        ################################################################################################################
         # Load previous model if there is.
         best_prec1 = 0
         best_loss = 1e10
@@ -113,7 +113,6 @@ def main():
             best_prec1 = checkpoint['best_prec1']
             opt.begin_epoch = checkpoint['epoch']
             model.load_state_dict(checkpoint['state_dict'])
-
 
         for epoch in range(opt.begin_epoch, opt.n_epochs + 1):
             if opt.train:
@@ -170,8 +169,8 @@ def main():
                 num_workers=opt.n_threads,
                 pin_memory=True)
 
-            test_loss, test_prec1 = val_epoch(epoch=10000, data_loader=test_loader, model=model, criterion=criterion,
-                                              opt=opt, logger=test_logger)
+            test_loss, test_prec1, final_auroc = val_epoch(epoch=10000, data_loader=test_loader, model=model,
+                                                           criterion=criterion, opt=opt, logger=test_logger)
 
             with open(os.path.join(opt.result_path, 'test_set_bestval' + str(fold) + '.txt'), 'a') as f:
                 f.write('Prec1: ' + str(test_prec1) + '; Loss: ' + str(test_loss))
