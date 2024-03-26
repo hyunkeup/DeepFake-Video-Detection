@@ -13,7 +13,7 @@ def add_annotation(datasets, dataset_type):
             prefix_path = f"{os.path.join(ROOT_DIR, label, filename)}"
             video_path = f"{prefix_path}_face_cropped.npy"
             audio_path = f"{prefix_path}_audio_cropped.npy"
-            row = f"{video_path};{audio_path};{dataset_type}\n"
+            row = f"{video_path};{audio_path};{1 if label.upper() == 'REAL' else 0};{dataset_type}\n"
             f.write(row)
 
 
