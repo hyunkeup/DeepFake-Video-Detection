@@ -32,12 +32,12 @@ def main():
             target_datasets.append((video_filename, label))
 
         # train: 60%, test: 20%, validation: 20%
-        train, validate, test = np.split(np.array(target_datasets),
-                                         [int(len(target_datasets) * 0.6), int(len(target_datasets) * 0.8)])
+        train, test, validation = np.split(np.array(target_datasets),
+                                           [int(len(target_datasets) * 0.6), int(len(target_datasets) * 0.8)])
 
         train_datasets.extend(train)
         test_datasets.extend(test)
-        validation_datasets.extend(validation_datasets)
+        validation_datasets.extend(validation)
 
     add_annotation(train_datasets, "training")
     add_annotation(test_datasets, "testing")
