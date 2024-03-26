@@ -130,7 +130,8 @@ def main():
                 # save_checkpoint(state, False, opt, fold)
 
             if opt.val:
-                validation_loss, prec1, final_auroc = val_epoch(i, val_loader, model, criterion, opt, val_logger)
+                validation_loss, prec1, final_auroc = val_epoch(epoch=epoch, data_loader=val_loader, model=model,
+                                                                criterion=criterion, opt=opt, logger=val_logger)
                 is_best = prec1 > best_prec1
                 best_prec1 = max(prec1, best_prec1)
                 state = {
