@@ -15,8 +15,8 @@ import torchaudio.transforms as T
 from dfdc_preprocessing.dfdc_args import get_args
 from preprocessing.Preprocessor import collect_mp4_paths_and_names
 
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 target_time = 3.6
-
 plt_lock = Lock()
 
 
