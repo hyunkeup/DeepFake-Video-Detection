@@ -5,11 +5,6 @@ from threading import Lock
 
 import cv2
 
-# mp_face_detection = mp.solutions.face_detection
-# face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.8, model_selection=1)
-
-
-mp_lock = Lock()
 
 VIDEO_FPS = 30
 AUDIO_FPS = 16000
