@@ -1,9 +1,10 @@
+import functools
+
+import librosa
+import numpy as np
 import torch
 import torch.utils.data as data
 from PIL import Image
-import functools
-import numpy as np
-import librosa
 
 
 def video_loader(video_dir_path):
@@ -75,19 +76,18 @@ class DFDC(data.Dataset):
 
         if self.data_type == 'audio' or self.data_type == 'audiovisual':
             path = self.data[index]['audio_path']
-            y, sr = load_audio(path, sr=22050)
+            mfcc_visual_features = np.load(path) # Image
+            mfcc_visual_features = Image.fromarray(mfcc_visual_features)
 
             if self.audio_transform is not None:
                 self.audio_transform.randomize_parameters()
-                y = self.audio_transform(y)
-
-            mfcc = get_mfccs(y, sr)
-            audio_features = mfcc
+                mfcc_visual_features = self.audio_transform(mfcc_visual_features)
 
             if self.data_type == 'audio':
-                return audio_features, target
+                return mfcc_visual_features, target
+
         if self.data_type == 'audiovisual':
-            return audio_features, clip, target
+            return mfcc_visual_features, clip, target
 
     def __len__(self):
         return len(self.data)

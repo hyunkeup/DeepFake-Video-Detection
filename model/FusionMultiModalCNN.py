@@ -49,7 +49,7 @@ class AudioResNet18(nn.Module):
     def __init__(self, input_channels=10):
         super(AudioResNet18, self).__init__()
 
-        self.resnet18 = resnet18(pretrained=True)
+        self.resnet18 = resnet18()
 
         self.conv1d_0 = conv1d_block_audio(input_channels, 64)
         self.conv1d_1 = conv1d_block_audio(64, 128)
@@ -167,6 +167,19 @@ class FusionMultiModalCNN(nn.Module):
 
         if self.fusion == "ia":
             return self._forward_ia(x_video=x_video, x_audio=x_audio)
+
+
+def generate_model(device, num_classes=2, fusion="it", num_heads=1):
+    model = FusionMultiModalCNN(num_classes=num_classes, fusion=fusion, num_heads=num_heads)
+
+    if device != 'cpu':
+        model = model.to(device)
+        model = nn.DataParallel(model, device_ids=None)
+        pytorch_total_params = sum(p.numel() for p in model.parameters() if
+                                   p.requires_grad)
+        print("Total number of trainable parameters: ", pytorch_total_params)
+
+    return model, model.parameters()
 
 
 if __name__ == "__main__":

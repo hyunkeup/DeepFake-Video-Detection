@@ -7,7 +7,7 @@
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 # Others
-pip install numpy opencv-python moviepy librosa facenet_pytorch matplotlib
+pip install numpy opencv-python moviepy librosa facenet_pytorch matplotlib marlin_pytorch
 ```
 
 ## Dataset Preprocessing

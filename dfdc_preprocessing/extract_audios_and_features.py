@@ -60,7 +60,7 @@ def run(preprocessed_directory_path, video_path, video_name):
 
     # Save npy
     frame = cv2.imread(cropped_feature_path)
-    frame = frame.resize(244, 244)
+    frame = cv2.resize(frame, (224, 224))
     cropped_np_file_path = os.path.join(preprocessed_directory_path, f"{filename}_audio_cropped.npy")
     np.save(cropped_np_file_path, np.array(frame))
     print(f"\t* Saved {cropped_np_file_path} from '{os.path.basename(video_path)}'.")
