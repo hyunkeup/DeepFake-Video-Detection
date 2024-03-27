@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="4. extract_audios_and_features" type="PythonConfigurationType" factoryName="Python" folderName="Preprocessing">
+  <configuration default="false" name="4. extract_audios" type="PythonConfigurationType" factoryName="Python" folderName="Preprocessing">
     <module name="CSCI566_Final_Project" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -12,7 +12,7 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/dfdc_preprocessing/extract_audios_and_features.py" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/dfdc_preprocessing/extract_audios.py" />
     <option name="PARAMETERS" value="--root_dir C:\workspace\deepfake-detection-challenge\prepared_raw_sample_videos --save_dir C:\workspace\deepfake-detection-challenge\preprocessed_sample_videos --num_threads 4" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
