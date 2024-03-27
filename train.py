@@ -70,10 +70,10 @@ def train_epoch_multimodal(epoch, data_loader, model, criterion, optimizer, opt,
         # visual_inputs = visual_inputs.permute(0, 2, 1, 3, 4)
         # visual_inputs = visual_inputs.reshape(visual_inputs.shape[0] * visual_inputs.shape[1], visual_inputs.shape[2],
         #                                       visual_inputs.shape[3], visual_inputs.shape[4])
-        visual_inputs = marlin.extract_features(visual_inputs)
+        visual_inputs = marlin.extract_features(visual_inputs)  # (32, 3, 16, 244, 244) -> (32, 1568, 384)
 
-        audio_inputs = Variable(audio_inputs)
-        visual_inputs = Variable(visual_inputs)
+        audio_inputs = Variable(audio_inputs)  # (32, 3, 244, 244)
+        visual_inputs = Variable(visual_inputs)  # (32, 1568, 384)
 
         targets = Variable(targets)
         outputs = model(audio_inputs, visual_inputs)

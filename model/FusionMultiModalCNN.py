@@ -40,9 +40,10 @@ def conv1d_block_audio(in_channels, out_channels, kernel_size=3, stride=1, paddi
 class AudioResNet18(nn.Module):
     def __init__(self, input_channels=10):
         super(AudioResNet18, self).__init__()
+        self.input_channels = input_channels
 
-        pretrained_model = resnet18()
-        self.resnet18 = nn.Sequential(*list(pretrained_model.children())[:-1])
+        self.resnet18 = nn.Sequential(*list(resnet18().children())[:-1])
+        self.resnet18_fc = nn.Linear(512, 1000)
 
         self.conv1d_0 = conv1d_block_audio(input_channels, 64)
         self.conv1d_1 = conv1d_block_audio(64, 128)
@@ -51,6 +52,9 @@ class AudioResNet18(nn.Module):
 
     def forward_resnet18(self, x):
         x = self.resnet18(x)
+        x = x.view(x.shape[0], -1)
+        x = self.resnet18_fc(x)
+        x = x.reshape((x.shape[0], self.input_channels, int(x.shape[1] / self.input_channels)))
         return x
 
     def forward_stage1(self, x):
@@ -116,16 +120,11 @@ class FusionMultiModalCNN(nn.Module):
 
     def _forward_it(self, x_audio, x_video):
         # Extract features
-        x_audio = self.audio_model.forward_resnet18(x_audio)
-        batch_size = x_audio.shape[0]
-        num_params = 1
-        for dim in x_audio.shape:
-            num_params *= dim
-        x_audio = x_audio.squeeze(2).reshape((batch_size, 16, int(num_params / batch_size / 16)))
+        x_audio = self.audio_model.forward_resnet18(x_audio)  # (32, 3, 244, 244) -> (32, 512, 1, 1)
 
         # Stage 1
         # {RuntimeError}Given groups=1, weight of size [64, 10, 3], expected input[8, 1568, 384] to have 10 channels, but got 1568 channels instead
-        x_video = self.video_model.forward_stage1(x_video)
+        x_video = self.video_model.forward_stage1(x_video)  # (32, 1568, 384)
         x_audio = self.audio_model.forward_stage1(x_audio)
 
         # Transformer

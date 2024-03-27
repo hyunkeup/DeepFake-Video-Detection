@@ -13,7 +13,7 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
-    <option name="PARAMETERS" value="--annotation_path C:\workspace\deepfake-detection-challenge\preprocessed_sample_videos\annotations.txt --n_threads 2 --marlin_model marlin_vit_small_ytf --batch_size 2 --train --test --val --learning_rate 1.0e-4" />
+    <option name="PARAMETERS" value="--annotation_path C:\workspace\deepfake-detection-challenge\preprocessed_sample_videos\annotations.txt --n_threads 2 --marlin_model marlin_vit_small_ytf --batch_size 8 --train --test --val --learning_rate 1.0e-4" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />
