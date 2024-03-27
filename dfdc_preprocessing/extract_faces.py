@@ -17,7 +17,7 @@ save_frames = 16
 input_fps = 30
 
 save_length = 3.6
-save_avi = False
+save_avi = True
 
 
 def get_select_distribution(m, n):
@@ -41,9 +41,12 @@ def run(preprocessed_directory_path, video_path, video_name):
         for frame in target_frames:
             # Extract a face on the video.
             image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            bbox = mtcnn.detect(image_rgb)
+            bbox, probs = mtcnn.detect(image_rgb)
+            if bbox is None:
+                continue
+            bbox = bbox[probs > 0.8]
             if bbox[0] is not None:
-                bbox = bbox[0][0]
+                bbox = bbox[0]
                 bbox = [round(x) for x in bbox]
                 x1, y1, x2, y2 = bbox
             try:
