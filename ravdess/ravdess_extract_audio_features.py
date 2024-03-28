@@ -1,3 +1,4 @@
+import datetime
 import glob
 import os
 
@@ -142,11 +143,19 @@ class RAVDESS(data.Dataset):
         return len(self.data)
 
 
+def adjust_learning_rate(optimizer, epoch, learning_rate, lr_steps):
+    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
+    lr_new = learning_rate * (0.1 ** (sum(epoch >= np.array(lr_steps))))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr_new
+
+
 def main():
     #################### Hyperparameters ###################
     BATCH_SIZE = 32
-    LEARNING_RATE = 0.001
-    N_EPOCH = 100
+    LEARNING_RATE = 0.04
+    N_EPOCH = 250
+    LR_STEPS = [40, 55, 65, 70, 200, 250]
     ########################################################
     dir_path = "C:\\workspace\\deepfake-detection-challenge\\audio_resampled"
     metadata = get_ravdess_metadata(dir_path)
@@ -172,9 +181,13 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     # Train
-    print(f"Hyperparameters: batch_size: {BATCH_SIZE}, lr: {LEARNING_RATE}, n_epoch: {N_EPOCH}")
+    print("=" * 40 + " Hyperparameters " + "=" * 40)
+    print(f"Batch size: {BATCH_SIZE}\nLearning rate: {LEARNING_RATE}\nNumber of epochs: {N_EPOCH}")
+    print("=" * 97)
     for epoch in range(N_EPOCH):
-        print(f"Epoch {epoch + 1}/{N_EPOCH}:")
+        adjust_learning_rate(optimizer=optimizer, epoch=epoch, learning_rate=LEARNING_RATE, lr_steps=LR_STEPS)
+        lr = optimizer.param_groups[0]['lr']
+        print(f"Epoch {epoch + 1}/{N_EPOCH}, lr: {lr}")
 
         model.train()
         running_loss = 0.0
@@ -206,6 +219,8 @@ def main():
             correct += (predicted == y).sum().item()
 
     print(f"Accuracy on test set: {correct / total}")
+    model_file = f"./RAVDESS_{datetime.datetime.now().strftime('%m-%d %H %M %S')}.pth"
+    torch.save(model, model_file)
 
 
 if __name__ == "__main__":
