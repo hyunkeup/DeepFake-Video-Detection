@@ -13,7 +13,7 @@ def conv1d_block(in_channels, out_channels, kernel_size=3, stride=1, padding='sa
 
 
 class VideoMarlin(nn.Module):
-    def __init__(self, input_channels=10, marlin_model="marlin_vit_small_ytf"):
+    def __init__(self, input_channels=10, num_classes=2, marlin_model="marlin_vit_small_ytf"):
         super(VideoMarlin, self).__init__()
         self.marlin = Marlin.from_online(marlin_model)
 
@@ -21,6 +21,10 @@ class VideoMarlin(nn.Module):
         self.conv1d_1 = conv1d_block(64, 64)
         self.conv1d_2 = conv1d_block(64, 128)
         self.conv1d_3 = conv1d_block(128, 128)
+
+        self.classifier_1 = nn.Sequential(
+            nn.Linear(128, num_classes),
+        )
 
     def forward_features(self, x):
         x = self.marlin.extract_features(x)
@@ -36,6 +40,18 @@ class VideoMarlin(nn.Module):
         x = self.conv1d_3(x)
         return x
 
+    def forward_classifier(self, x):
+        x = x.mean([-1])  # pooling accross temporal dimension
+        x1 = self.classifier_1(x)
+        return x1
+
+    def forward(self, x):
+        x = self.forward_features(x)
+        x = self.forward_stage1(x)
+        x = self.forward_stage2(x)
+        x = self.forward_classifier(x)
+        return x
+
 
 def conv1d_block_audio(in_channels, out_channels, kernel_size=3, stride=1, padding='valid'):
     return nn.Sequential(nn.Conv1d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding),
@@ -44,7 +60,7 @@ def conv1d_block_audio(in_channels, out_channels, kernel_size=3, stride=1, paddi
 
 
 class AudioResNet18(nn.Module):
-    def __init__(self, input_channels=10):
+    def __init__(self, input_channels=10, num_classes=2):
         super(AudioResNet18, self).__init__()
         self.input_channels = input_channels
 
@@ -55,6 +71,10 @@ class AudioResNet18(nn.Module):
         self.conv1d_1 = conv1d_block_audio(64, 128)
         self.conv1d_2 = conv1d_block_audio(128, 256)
         self.conv1d_3 = conv1d_block_audio(256, 128)
+
+        self.classifier_1 = nn.Sequential(
+            nn.Linear(128, num_classes),
+        )
 
     def forward_features(self, x):
         x = self.resnet18(x)
@@ -71,6 +91,18 @@ class AudioResNet18(nn.Module):
     def forward_stage2(self, x):
         x = self.conv1d_2(x)
         x = self.conv1d_3(x)
+        return x
+
+    def forward_classifier(self, x):
+        x = x.mean([-1])  # pooling accross temporal dimension
+        x1 = self.classifier_1(x)
+        return x1
+
+    def forward(self, x):
+        x = self.forward_features(x)
+        x = self.forward_stage1(x)
+        x = self.forward_stage2(x)
+        x = self.forward_classifier(x)
         return x
 
 
@@ -94,11 +126,9 @@ class FusionMultiModalCNN(nn.Module):
         self.input_dim_audio = input_dim_audio
 
         # MARLIN
-        self.video_model = VideoMarlin(input_channels=1568)
+        self.video_model = VideoMarlin(input_channels=1568, marlin_model=marlin_model)
         # ResNet18?
         self.audio_model = AudioResNet18(input_channels=10)
-
-        # Init video and audio feature extractor
 
         if fusion == "lt":
             self.av = AttentionBlock(in_dim_k=input_dim_video, in_dim_q=input_dim_audio, out_dim=e_dim,
