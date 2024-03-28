@@ -1,11 +1,13 @@
 import glob
 import os
+import time
 
 import cv2
 import librosa
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.signal import resample
+from tqdm import tqdm
 
 
 def get_mfccs(y, sr):
@@ -44,16 +46,19 @@ def get_ravdess_metadata(dir_path):
     :return:
     """
     metadata = []
-    for file_path in glob.glob(os.path.join(dir_path, "*.wav")):
-        directory_path = os.path.dirname(file_path)
-        filename = os.path.basename(file_path)
+    for wav_file in glob.glob(os.path.join(dir_path, "*.wav")):
+        directory_path = os.path.dirname(wav_file)
+        filename = os.path.basename(wav_file)
+        filename_without_extension = filename.split(".")[0]
 
         # emotion index is 2
         data = {
             "directory_path": directory_path,
             "filename": filename,
-            "path": file_path,
-            "label": filename.split(".")[0].split("-")[2]
+            "label": filename.split(".")[0].split("-")[2],
+            "wav_file_path": wav_file,
+            "image_file_path": os.path.join(directory_path, filename_without_extension + ".png"),
+            "np_file_path": os.path.join(directory_path, filename_without_extension + ".npy")
         }
         metadata.append(data)
 
@@ -61,15 +66,15 @@ def get_ravdess_metadata(dir_path):
 
 
 def generate_datasets(metadata, min_duration=3):
-    for data in metadata:
-        directory_path = data["directory_path"]
-        filename = data["filename"]
-        path = data["path"]
-        label = data["label"]
-        filename_without_extension = filename.split(".")[0]
+    print("=" * 50 + " Generating datasets " + "=" * 50)
+    s_time = time.time()
+    for data in tqdm(metadata):
+        wav_file_path = data["wav_file_path"]
+        image_file_path = data["image_file_path"]
+        np_file_path = data["np_file_path"]
 
         # Load the audio file
-        audio, sr = audio_load(path)  # 3 seconds
+        audio, sr = audio_load(wav_file_path)  # 3 seconds
 
         # Padding or Cutting by min_duration
         audio_length = min_duration * sr
@@ -88,17 +93,19 @@ def generate_datasets(metadata, min_duration=3):
         audio_features = [get_mfccs(y=audio_frame, sr=sr) for audio_frame in audio_frames]
 
         # Plotting MFCC features
-        mfcc_img_path = os.path.join(directory_path, filename_without_extension + ".png")
         plt.clf()
         plt.axis("off")
         plt.imshow(np.vstack(audio_features), interpolation="nearest", origin="lower", aspect="auto")
-        plt.savefig(mfcc_img_path, bbox_inches='tight', pad_inches=0)
+        plt.savefig(image_file_path, bbox_inches='tight', pad_inches=0)
 
         # Resize for 244 x 244
-        frame = cv2.imread(mfcc_img_path)
+        frame = cv2.imread(image_file_path)
         frame = cv2.resize(frame, (244, 244))
-        cv2.imwrite(mfcc_img_path, frame)
-        np.save(os.path.join(directory_path, filename_without_extension + ".npy"), np.array(frame))
+        cv2.imwrite(image_file_path, frame)
+        np.save(np_file_path, np.array(frame))
+
+    print("=" * 50 + " Datasets are generated. " + "=" * 50)
+    print(f"{round(time.time() - s_time, 2)} seconds.")
 
 
 def main():
