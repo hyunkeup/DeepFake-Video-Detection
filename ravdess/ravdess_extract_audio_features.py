@@ -172,12 +172,12 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     # Train
+    print(f"Hyperparameters: batch_size: {BATCH_SIZE}, lr: {LEARNING_RATE}, n_epoch: {N_EPOCH}")
     for epoch in range(N_EPOCH):
-        model.train()
-        running_loss = 0.0
-
         print(f"Epoch {epoch + 1}/{N_EPOCH}:")
 
+        model.train()
+        running_loss = 0.0
         for i, (x, y) in tqdm(enumerate(train_loader)):
             x, y = x.to(device), y.to(device)
 
@@ -189,7 +189,7 @@ def main():
 
             running_loss += loss.item()
 
-        print(f"Loss: {running_loss / len(train_loader)}")
+        print(f"Loss: {running_loss / len(train_loader)}\n")
 
     # Validation
     model.eval()
