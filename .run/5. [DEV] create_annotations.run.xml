@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="2. prepare_raw_dataset" type="PythonConfigurationType" factoryName="Python" folderName="Preprocessing">
+  <configuration default="false" name="5. [DEV] create_annotations" type="PythonConfigurationType" factoryName="Python" folderName="[DEV] Preprocessing">
     <module name="CSCI566_Final_Project" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -12,8 +12,8 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/dfdc_preprocessing/prepare_raw_dataset.py" />
-    <option name="PARAMETERS" value="--root_dir C:\workspace\deepfake-detection-challenge --sub_folders train_sample_videos --save_dir C:\workspace\deepfake-detection-challenge\prepared_raw_sample_videos" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/dfdc_preprocessing/create_annotations.py" />
+    <option name="PARAMETERS" value="--root_dir C:\workspace\deepfake-detection-challenge\preprocessed_sample_videos" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

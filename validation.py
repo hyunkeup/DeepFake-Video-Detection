@@ -2,16 +2,16 @@
 This code is based on https://github.com/okankop/Efficient-3DCNNs
 '''
 
-from marlin_pytorch import Marlin
-
 '''
 This code is based on https://github.com/okankop/Efficient-3DCNNs
 '''
+import time
+
 import torch
 from torch.autograd import Variable
-import time
-from utils import AverageMeter, calculate_accuracy
 from torchmetrics.classification import BinaryAUROC
+
+from utils import AverageMeter, calculate_accuracy
 
 
 def val_epoch_multimodal(epoch, data_loader, model, criterion, opt, logger, modality='both', dist=None):
@@ -20,8 +20,6 @@ def val_epoch_multimodal(epoch, data_loader, model, criterion, opt, logger, moda
     print('validation at epoch {}'.format(epoch))
     assert modality in ['both', 'audio', 'video']
     model.eval()
-
-    marlin = Marlin.from_online(opt.marlin_model)
 
     batch_time = AverageMeter()
     data_time = AverageMeter()
@@ -66,7 +64,7 @@ def val_epoch_multimodal(epoch, data_loader, model, criterion, opt, logger, moda
         # inputs_visual = inputs_visual.reshape(inputs_visual.shape[0] * inputs_visual.shape[1], inputs_visual.shape[2],
         #                                       inputs_visual.shape[3], inputs_visual.shape[4])
 
-        inputs_visual = marlin.extract_features(inputs_visual)
+        # inputs_visual = marlin.extract_features(inputs_visual)
 
         targets = targets.to(opt.device)
         with torch.no_grad():

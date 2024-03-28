@@ -76,18 +76,18 @@ class DFDC(data.Dataset):
 
         if self.data_type == 'audio' or self.data_type == 'audiovisual':
             path = self.data[index]['audio_path']
-            mfcc_visual_features = np.load(path) # Image
-            mfcc_visual_features = Image.fromarray(mfcc_visual_features)
+            audio_features = np.load(path) # Image
+            audio_features = Image.fromarray(audio_features)
 
             if self.audio_transform is not None:
                 self.audio_transform.randomize_parameters()
-                mfcc_visual_features = self.audio_transform(mfcc_visual_features)
+                audio_features = self.audio_transform(audio_features)
 
             if self.data_type == 'audio':
-                return mfcc_visual_features, target
+                return audio_features, target
 
         if self.data_type == 'audiovisual':
-            return mfcc_visual_features, clip, target
+            return audio_features, clip, target
 
     def __len__(self):
         return len(self.data)

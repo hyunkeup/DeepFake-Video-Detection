@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from marlin_pytorch import Marlin
 from torchvision.models import resnet18
 
 from model.transformer_timm import AttentionBlock, Attention
@@ -12,13 +13,18 @@ def conv1d_block(in_channels, out_channels, kernel_size=3, stride=1, padding='sa
 
 
 class VideoMarlin(nn.Module):
-    def __init__(self, input_channels=10):
+    def __init__(self, input_channels=10, marlin_model="marlin_vit_small_ytf"):
         super(VideoMarlin, self).__init__()
+        self.marlin = Marlin.from_online(marlin_model)
 
         self.conv1d_0 = conv1d_block(input_channels, 64)
         self.conv1d_1 = conv1d_block(64, 64)
         self.conv1d_2 = conv1d_block(64, 128)
         self.conv1d_3 = conv1d_block(128, 128)
+
+    def forward_features(self, x):
+        x = self.marlin.extract_features(x)
+        return x
 
     def forward_stage1(self, x):
         x = self.conv1d_0(x)
@@ -40,17 +46,21 @@ def conv1d_block_audio(in_channels, out_channels, kernel_size=3, stride=1, paddi
 class AudioResNet18(nn.Module):
     def __init__(self, input_channels=10):
         super(AudioResNet18, self).__init__()
+        self.input_channels = input_channels
 
-        pretrained_model = resnet18()
-        self.resnet18 = nn.Sequential(*list(pretrained_model.children())[:-1])
+        self.resnet18 = nn.Sequential(*list(resnet18().children())[:-1])
+        self.resnet18_fc = nn.Linear(512, 1000)
 
-        self.conv1d_0 = conv1d_block_audio(input_channels, 64)
+        self.conv1d_0 = conv1d_block_audio(self.input_channels, 64)
         self.conv1d_1 = conv1d_block_audio(64, 128)
         self.conv1d_2 = conv1d_block_audio(128, 256)
         self.conv1d_3 = conv1d_block_audio(256, 128)
 
-    def forward_resnet18(self, x):
+    def forward_features(self, x):
         x = self.resnet18(x)
+        x = x.view(x.shape[0], -1)
+        x = self.resnet18_fc(x)
+        x = x.reshape((x.shape[0], self.input_channels, int(x.shape[1] / self.input_channels)))
         return x
 
     def forward_stage1(self, x):
@@ -65,7 +75,8 @@ class AudioResNet18(nn.Module):
 
 
 class FusionMultiModalCNN(nn.Module):
-    def __init__(self, num_classes=2, fusion="it", e_dim=128, input_dim_video=128, input_dim_audio=128, num_heads=1):
+    def __init__(self, num_classes=2, fusion="it", e_dim=128, input_dim_video=128, input_dim_audio=128, num_heads=1,
+                 marlin_model="marlin_vit_small_ytf"):
         """
         reference: https://github.com/katerynaCh/multimodal-emotion-recognition/tree/main
 
@@ -85,7 +96,7 @@ class FusionMultiModalCNN(nn.Module):
         # MARLIN
         self.video_model = VideoMarlin(input_channels=1568)
         # ResNet18?
-        self.audio_model = AudioResNet18(input_channels=16)
+        self.audio_model = AudioResNet18(input_channels=10)
 
         # Init video and audio feature extractor
 
@@ -116,17 +127,12 @@ class FusionMultiModalCNN(nn.Module):
 
     def _forward_it(self, x_audio, x_video):
         # Extract features
-        x_audio = self.audio_model.forward_resnet18(x_audio)
-        batch_size = x_audio.shape[0]
-        num_params = 1
-        for dim in x_audio.shape:
-            num_params *= dim
-        x_audio = x_audio.squeeze(2).reshape((batch_size, 16, int(num_params / batch_size / 16)))
+        x_audio = self.audio_model.forward_features(x_audio)  # (32, 3, 244, 244) -> (32, 10, 1000)
+        x_video = self.video_model.forward_features(x_video)  # (32, 3, 16, 244, 244) - > (32, 1568, 384)
 
         # Stage 1
-        # {RuntimeError}Given groups=1, weight of size [64, 10, 3], expected input[8, 1568, 384] to have 10 channels, but got 1568 channels instead
-        x_video = self.video_model.forward_stage1(x_video)
-        x_audio = self.audio_model.forward_stage1(x_audio)
+        x_audio = self.audio_model.forward_stage1(x_audio)  # (32, 10, 1000) -> (32, 128, 94)
+        x_video = self.video_model.forward_stage1(x_video)  # (32, 1568, 384) -> (32, 1568, 384)
 
         # Transformer
         proj_x_v = x_video.permute(0, 2, 1)
@@ -166,8 +172,8 @@ class FusionMultiModalCNN(nn.Module):
             return self._forward_ia(x_audio=x_audio, x_video=x_video)
 
 
-def generate_model(device, num_classes=2, fusion="it", num_heads=1):
-    model = FusionMultiModalCNN(num_classes=num_classes, fusion=fusion, num_heads=num_heads)
+def generate_model(device, num_classes=2, fusion="it", num_heads=1, marlin_model="marlin_vit_small_ytf"):
+    model = FusionMultiModalCNN(num_classes=num_classes, fusion=fusion, num_heads=num_heads, marlin_model=marlin_model)
 
     if device != 'cpu':
         model = model.to(device)

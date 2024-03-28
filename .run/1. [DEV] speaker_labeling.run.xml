@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="main" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="1. [DEV] speaker_labeling" type="PythonConfigurationType" factoryName="Python" folderName="[DEV] Preprocessing">
     <module name="CSCI566_Final_Project" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -7,13 +7,13 @@
       <env name="PYTHONUNBUFFERED" value="1" />
     </envs>
     <option name="SDK_HOME" value="" />
-    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/dfdc_preprocessing" />
     <option name="IS_MODULE_SDK" value="true" />
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
-    <option name="PARAMETERS" value="--annotation_path C:\workspace\deepfake-detection-challenge\preprocessed_sample_videos\annotations.txt --n_threads 2 --marlin_model marlin_vit_small_ytf --batch_size 2 --train --test --val" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/dfdc_preprocessing/speaker_labeling.py" />
+    <option name="PARAMETERS" value="--root_dir C:\workspace\deepfake-detection-challenge --sub_folders train_sample_videos --num_threads 4" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

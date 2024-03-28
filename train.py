@@ -4,7 +4,6 @@ This code is based on https://github.com/okankop/Efficient-3DCNNs
 import time
 
 import torch
-from marlin_pytorch import Marlin
 from torch.autograd import Variable
 
 from utils import AverageMeter, calculate_accuracy
@@ -15,8 +14,6 @@ def train_epoch_multimodal(epoch, data_loader, model, criterion, optimizer, opt,
     print('train at epoch {}'.format(epoch))
 
     model.train()
-
-    marlin = Marlin.from_online(opt.marlin_model)
 
     batch_time = AverageMeter()
     data_time = AverageMeter()
@@ -70,10 +67,9 @@ def train_epoch_multimodal(epoch, data_loader, model, criterion, optimizer, opt,
         # visual_inputs = visual_inputs.permute(0, 2, 1, 3, 4)
         # visual_inputs = visual_inputs.reshape(visual_inputs.shape[0] * visual_inputs.shape[1], visual_inputs.shape[2],
         #                                       visual_inputs.shape[3], visual_inputs.shape[4])
-        visual_inputs = marlin.extract_features(visual_inputs)
 
-        audio_inputs = Variable(audio_inputs)
-        visual_inputs = Variable(visual_inputs)
+        audio_inputs = Variable(audio_inputs)  # (32, 3, 244, 244)
+        visual_inputs = Variable(visual_inputs)  # (32, 1568, 384)
 
         targets = Variable(targets)
         outputs = model(audio_inputs, visual_inputs)
