@@ -41,7 +41,8 @@ def main():
         # Create model
         torch.manual_seed(opt.manual_seed)
         model, parameters = FusionMultiModalCNN.generate_model(device=opt.device, num_classes=opt.n_classes,
-                                                               fusion=opt.fusion, num_heads=opt.num_heads)
+                                                               fusion=opt.fusion, num_heads=opt.num_heads,
+                                                               marlin_model=opt.marlin_model)
 
         # Loss function
         criterion = nn.CrossEntropyLoss()
