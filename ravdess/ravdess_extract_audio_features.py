@@ -1,6 +1,5 @@
 import glob
 import os
-import time
 
 import cv2
 import librosa
@@ -67,7 +66,7 @@ def get_ravdess_metadata(dir_path):
 
 def generate_datasets(metadata, min_duration=3):
     print("=" * 50 + " Generating datasets " + "=" * 50)
-    s_time = time.time()
+
     for data in tqdm(metadata):
         wav_file_path = data["wav_file_path"]
         image_file_path = data["image_file_path"]
@@ -105,13 +104,12 @@ def generate_datasets(metadata, min_duration=3):
         np.save(np_file_path, np.array(frame))
 
     print("=" * 50 + " Datasets are generated. " + "=" * 50)
-    print(f"{round(time.time() - s_time, 2)} seconds.")
 
 
 def main():
     dir_path = "C:\\workspace\\deepfake-detection-challenge\\audio_resampled"
     metadata = get_ravdess_metadata(dir_path)
-    generate_datasets(metadata)
+    # generate_datasets(metadata)
 
 
 if __name__ == "__main__":
