@@ -19,7 +19,7 @@ from tqdm import tqdm
 #################### Hyperparameters ###################
 BATCH_SIZE = 32
 LEARNING_RATE = 0.04
-N_EPOCH = 1
+N_EPOCH = 250
 LR_STEPS = [40, 55, 65, 70, 200, 250]
 ########################################################
 
@@ -71,7 +71,7 @@ def get_ravdess_metadata(dir_path):
         data = {
             "directory_path": directory_path,
             "filename": filename,
-            "label": filename.split(".")[0].split("-")[2],
+            "label": int(filename.split(".")[0].split("-")[2]) - 1,
             "wav_file_path": wav_file,
             "image_file_path": os.path.join(directory_path, filename_without_extension + ".png"),
             "np_file_path": os.path.join(directory_path, filename_without_extension + ".npy")
@@ -146,7 +146,7 @@ class RAVDESS(data.Dataset):
             x = self.transform(image)
         else:
             x = x.transpose(2, 0, 1)
-        y = int(self.data[index]["label"])  # 0 is empty to match between real label and y label.
+        y = self.data[index]["label"]
         return x, y
 
     def __len__(self):
@@ -226,6 +226,7 @@ def evaluate(model, test_loader):
 def main():
     dir_path = "C:\\workspace\\deepfake-detection-challenge\\audio_resampled"
     metadata = get_ravdess_metadata(dir_path)
+    # generate_datasets(dir_path)
 
     # Datasets
     image_transform = transforms.Compose([
