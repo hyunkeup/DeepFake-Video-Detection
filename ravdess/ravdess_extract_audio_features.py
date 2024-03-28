@@ -162,7 +162,7 @@ def adjust_learning_rate(optimizer, epoch, learning_rate, lr_steps):
 
 def train(criterion, model, optimizer, train_loader):
     print("=" * 40 + " Hyperparameters " + "=" * 40)
-    print(f"Batch size: {BATCH_SIZE}\nLearning rate: {LEARNING_RATE}\nNumber of epochs: {N_EPOCH}")
+    print(f"Batch size: {BATCH_SIZE}\nLearning rate: {LEARNING_RATE}\nNumber of epochs: {N_EPOCH}\ndevice: {device}")
     print("=" * 97)
     for epoch in range(N_EPOCH):
         adjust_learning_rate(optimizer=optimizer, epoch=epoch, learning_rate=LEARNING_RATE, lr_steps=LR_STEPS)
