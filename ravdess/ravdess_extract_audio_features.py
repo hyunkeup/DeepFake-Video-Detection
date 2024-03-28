@@ -19,7 +19,7 @@ from tqdm import tqdm
 #################### Hyperparameters ###################
 BATCH_SIZE = 32
 LEARNING_RATE = 0.04
-N_EPOCH = 250
+N_EPOCH = 1
 LR_STEPS = [40, 55, 65, 70, 200, 250]
 ########################################################
 
@@ -194,8 +194,9 @@ def evaluate(model, test_loader):
     pred_scores = []
     true_labels = []
 
+    print("Evaluate:")
     with torch.no_grad():
-        for x, y in test_loader:
+        for x, y in tqdm(test_loader):
             x, y = x.to(device), y.to(device)
 
             outputs = model(x)
@@ -204,8 +205,8 @@ def evaluate(model, test_loader):
             total += y.size(0)
             correct += (predicted == y).sum().item()
 
-            pred_scores.extend(outputs.cpu().numpy())
             true_labels.extend(y.cpu().numpy())
+            pred_scores.extend(outputs.cpu().numpy())
 
     accuracy = correct / total
     pred_scores = torch.tensor(pred_scores)
@@ -214,7 +215,10 @@ def evaluate(model, test_loader):
     top1_accuracy = (pred_top5[:, 0] == true_labels).float().mean().item()
     top5_accuracy = (pred_top5 == true_labels.view(-1, 1)).float().sum(1).mean().item()
 
-    auroc = roc_auc_score(true_labels.numpy(), pred_scores.numpy(), multi_class='ovr')
+    y_scores = []
+    for y_true, y_score in zip(true_labels.numpy(), pred_scores.numpy()):
+        y_scores.append(y_score[y_true])
+    auroc = roc_auc_score(true_labels.numpy(), np.array(y_scores), multi_class='ovr')
 
     return accuracy, top1_accuracy, top5_accuracy, auroc
 
