@@ -225,6 +225,7 @@ def evaluate(model, test_loader):
 
 def main():
     dir_path = "C:\\workspace\\deepfake-detection-challenge\\audio_resampled"
+    model_path = "./RAVDESS_bs_32_lr_0.04_ep_250_03-28 16 30 18.pth"
     metadata = get_ravdess_metadata(dir_path)
     # generate_datasets(dir_path)
 
@@ -241,7 +242,11 @@ def main():
                                               batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
 
     # Model
-    model = ResNetModel().to(device)
+    if model_path is None:
+        model = ResNetModel().to(device)
+    else:
+        model = torch.load(model_path).to(device)
+
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
