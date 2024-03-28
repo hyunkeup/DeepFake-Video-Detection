@@ -12,8 +12,18 @@ import torchvision
 import torchvision.transforms as transforms
 from PIL import Image
 from scipy.signal import resample
+from sklearn.metrics import roc_auc_score
 from torch import nn, optim
 from tqdm import tqdm
+
+#################### Hyperparameters ###################
+BATCH_SIZE = 32
+LEARNING_RATE = 0.04
+N_EPOCH = 250
+LR_STEPS = [40, 55, 65, 70, 200, 250]
+########################################################
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 def get_mfccs(y, sr):
@@ -150,37 +160,7 @@ def adjust_learning_rate(optimizer, epoch, learning_rate, lr_steps):
         param_group['lr'] = lr_new
 
 
-def main():
-    #################### Hyperparameters ###################
-    BATCH_SIZE = 32
-    LEARNING_RATE = 0.04
-    N_EPOCH = 250
-    LR_STEPS = [40, 55, 65, 70, 200, 250]
-    ########################################################
-    dir_path = "C:\\workspace\\deepfake-detection-challenge\\audio_resampled"
-    metadata = get_ravdess_metadata(dir_path)
-    # random.seed(42)
-    # random.shuffle(metadata)
-
-    # Datasets
-    image_transform = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-    ])
-
-    train_data, test_data = np.split(np.array(metadata), [int(len(metadata) * 0.8)])
-    train_loader = torch.utils.data.DataLoader(RAVDESS(train_data, transform=image_transform),
-                                               batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
-    test_loader = torch.utils.data.DataLoader(RAVDESS(test_data, transform=image_transform),
-                                              batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
-
-    # Model
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model = ResNetModel().to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
-
-    # Train
+def train(criterion, model, optimizer, train_loader):
     print("=" * 40 + " Hyperparameters " + "=" * 40)
     print(f"Batch size: {BATCH_SIZE}\nLearning rate: {LEARNING_RATE}\nNumber of epochs: {N_EPOCH}")
     print("=" * 97)
@@ -203,11 +183,17 @@ def main():
             running_loss += loss.item()
 
         print(f"Loss: {running_loss / len(train_loader)}\n")
+    model_file = f"./RAVDESS_bs_{BATCH_SIZE}_lr_{LEARNING_RATE}_ep_{N_EPOCH}_{datetime.datetime.now().strftime('%m-%d %H %M %S')}.pth"
+    torch.save(model, model_file)
 
-    # Validation
+
+def evaluate(model, test_loader):
     model.eval()
     correct = 0
     total = 0
+    pred_scores = []
+    true_labels = []
+
     with torch.no_grad():
         for x, y in test_loader:
             x, y = x.to(device), y.to(device)
@@ -218,9 +204,51 @@ def main():
             total += y.size(0)
             correct += (predicted == y).sum().item()
 
-    print(f"Accuracy on test set: {correct / total}")
-    model_file = f"./RAVDESS_{datetime.datetime.now().strftime('%m-%d %H %M %S')}.pth"
-    torch.save(model, model_file)
+            pred_scores.extend(outputs.cpu().numpy())
+            true_labels.extend(y.cpu().numpy())
+
+    accuracy = correct / total
+    pred_scores = torch.tensor(pred_scores)
+    true_labels = torch.tensor(true_labels)
+    _, pred_top5 = pred_scores.topk(5, 1)
+    top1_accuracy = (pred_top5[:, 0] == true_labels).float().mean().item()
+    top5_accuracy = (pred_top5 == true_labels.view(-1, 1)).float().sum(1).mean().item()
+
+    auroc = roc_auc_score(true_labels.numpy(), pred_scores.numpy(), multi_class='ovr')
+
+    return accuracy, top1_accuracy, top5_accuracy, auroc
+
+
+def main():
+    dir_path = "C:\\workspace\\deepfake-detection-challenge\\audio_resampled"
+    metadata = get_ravdess_metadata(dir_path)
+
+    # Datasets
+    image_transform = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+    ])
+
+    train_data, test_data = np.split(np.array(metadata), [int(len(metadata) * 0.8)])
+    train_loader = torch.utils.data.DataLoader(RAVDESS(train_data, transform=image_transform),
+                                               batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
+    test_loader = torch.utils.data.DataLoader(RAVDESS(test_data, transform=image_transform),
+                                              batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
+
+    # Model
+    model = ResNetModel().to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+
+    # Train
+    train(criterion=criterion, model=model, optimizer=optimizer, train_loader=train_loader)
+
+    # Validation
+    accuracy, top1_accuracy, top5_accuracy, auroc = evaluate(model=model, test_loader=test_loader)
+    print(f'Accuracy: {accuracy}')
+    print(f'Top-1 Accuracy: {top1_accuracy}')
+    print(f'Top-5 Accuracy: {top5_accuracy}')
+    print(f'AUROC: {auroc}')
 
 
 if __name__ == "__main__":
