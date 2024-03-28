@@ -5,7 +5,13 @@ import cv2
 import librosa
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
+import torch.utils.data as data
+import torchvision
+import torchvision.transforms as transforms
+from PIL import Image
 from scipy.signal import resample
+from torch import nn, optim
 from tqdm import tqdm
 
 
@@ -64,8 +70,10 @@ def get_ravdess_metadata(dir_path):
     return metadata
 
 
-def generate_datasets(metadata, min_duration=3):
+def generate_datasets(dir_path, min_duration=3):
     print("=" * 50 + " Generating datasets " + "=" * 50)
+    print(f"From {dir_path}")
+    metadata = get_ravdess_metadata(dir_path)
 
     for data in tqdm(metadata):
         wav_file_path = data["wav_file_path"]
@@ -106,10 +114,98 @@ def generate_datasets(metadata, min_duration=3):
     print("=" * 50 + " Datasets are generated. " + "=" * 50)
 
 
+class ResNetModel(nn.Module):
+    def __init__(self):
+        super(ResNetModel, self).__init__()
+        self.model = torchvision.models.resnet18(num_classes=8)
+
+    def forward(self, x):
+        return self.model(x)
+
+
+class RAVDESS(data.Dataset):
+    def __init__(self, metadata, transform=None):
+        self.data = metadata
+        self.transform = transform
+
+    def __getitem__(self, index):
+        x = np.load(self.data[index]["np_file_path"])
+        if self.transform is not None:
+            image = Image.fromarray(x)
+            x = self.transform(image)
+        else:
+            x = x.transpose(2, 0, 1)
+        y = int(self.data[index]["label"])  # 0 is empty to match between real label and y label.
+        return x, y
+
+    def __len__(self):
+        return len(self.data)
+
+
 def main():
+    #################### Hyperparameters ###################
+    BATCH_SIZE = 32
+    LEARNING_RATE = 0.001
+    N_EPOCH = 100
+    ########################################################
     dir_path = "C:\\workspace\\deepfake-detection-challenge\\audio_resampled"
     metadata = get_ravdess_metadata(dir_path)
-    # generate_datasets(metadata)
+    # random.seed(42)
+    # random.shuffle(metadata)
+
+    # Datasets
+    image_transform = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+    ])
+
+    train_data, test_data = np.split(np.array(metadata), [int(len(metadata) * 0.8)])
+    train_loader = torch.utils.data.DataLoader(RAVDESS(train_data, transform=image_transform),
+                                               batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
+    test_loader = torch.utils.data.DataLoader(RAVDESS(test_data, transform=image_transform),
+                                              batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
+
+    # Model
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model = ResNetModel().to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+
+    # Train
+    for epoch in range(N_EPOCH):
+        model.train()
+        running_loss = 0.0
+
+        print(f"Epoch {epoch + 1}/{N_EPOCH}:")
+
+        for i, (x, y) in tqdm(enumerate(train_loader)):
+            x, y = x.to(device), y.to(device)
+
+            optimizer.zero_grad()
+            outputs = model(x)
+            loss = criterion(outputs, y)
+            loss.backward()
+            optimizer.step()
+
+            running_loss += loss.item()
+
+        print(f"Loss: {running_loss / len(train_loader)}")
+
+    # Validation
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for x, y in test_loader:
+            x, y = x.to(device), y.to(device)
+
+            outputs = model(x)
+            _, predicted = torch.max(outputs.data, 1)
+
+            total += y.size(0)
+            correct += (predicted == y).sum().item()
+
+    print(f"Accuracy on test set: {correct / total}")
 
 
 if __name__ == "__main__":
