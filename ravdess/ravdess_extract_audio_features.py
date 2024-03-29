@@ -12,14 +12,14 @@ import torchvision
 import torchvision.transforms as transforms
 from PIL import Image
 from scipy.signal import resample
-from sklearn.metrics import roc_auc_score
 from torch import nn, optim
+from torchmetrics.classification import AUROC
 from tqdm import tqdm
 
 #################### Hyperparameters ###################
 BATCH_SIZE = 32
-LEARNING_RATE = 0.04
-N_EPOCH = 250
+LEARNING_RATE = 0.001  # 0.04
+N_EPOCH = 100  # 250
 LR_STEPS = [40, 55, 65, 70, 200, 250]
 ########################################################
 
@@ -126,9 +126,9 @@ def generate_datasets(dir_path, min_duration=3):
 
 
 class ResNetModel(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes=8):
         super(ResNetModel, self).__init__()
-        self.model = torchvision.models.resnet18(num_classes=8)
+        self.model = torchvision.models.resnet18(num_classes=num_classes)
 
     def forward(self, x):
         return self.model(x)
@@ -165,13 +165,13 @@ def train(criterion, model, optimizer, train_loader):
     print(f"Batch size: {BATCH_SIZE}\nLearning rate: {LEARNING_RATE}\nNumber of epochs: {N_EPOCH}\ndevice: {device}")
     print("=" * 97)
     for epoch in range(N_EPOCH):
-        adjust_learning_rate(optimizer=optimizer, epoch=epoch, learning_rate=LEARNING_RATE, lr_steps=LR_STEPS)
+        # adjust_learning_rate(optimizer=optimizer, epoch=epoch, learning_rate=LEARNING_RATE, lr_steps=LR_STEPS)
         lr = optimizer.param_groups[0]['lr']
         print(f"Epoch {epoch + 1}/{N_EPOCH}, lr: {lr}")
 
         model.train()
         running_loss = 0.0
-        for i, (x, y) in tqdm(enumerate(train_loader)):
+        for i, (x, y) in enumerate(tqdm(train_loader)):
             x, y = x.to(device), y.to(device)
 
             optimizer.zero_grad()
@@ -182,9 +182,10 @@ def train(criterion, model, optimizer, train_loader):
 
             running_loss += loss.item()
 
-        print(f"Loss: {running_loss / len(train_loader)}\n")
+        print(f"loss: {running_loss / len(train_loader)}\n")
+
     model_file = f"./RAVDESS_bs_{BATCH_SIZE}_lr_{LEARNING_RATE}_ep_{N_EPOCH}_{datetime.datetime.now().strftime('%m-%d %H %M %S')}.pth"
-    torch.save(model, model_file)
+    torch.save(model.state_dict(), model_file)
 
 
 def evaluate(model, test_loader):
@@ -193,6 +194,7 @@ def evaluate(model, test_loader):
     total = 0
     pred_scores = []
     true_labels = []
+    auroc = AUROC(task="multiclass", num_classes=8)
 
     print("Evaluate:")
     with torch.no_grad():
@@ -208,6 +210,11 @@ def evaluate(model, test_loader):
             true_labels.extend(y.cpu().numpy())
             pred_scores.extend(outputs.cpu().numpy())
 
+            auroc_score = auroc(outputs, y)
+
+    true_labels = np.array(true_labels)
+    pred_scores = np.array(pred_scores)
+
     accuracy = correct / total
     pred_scores = torch.tensor(pred_scores)
     true_labels = torch.tensor(true_labels)
@@ -215,37 +222,34 @@ def evaluate(model, test_loader):
     top1_accuracy = (pred_top5[:, 0] == true_labels).float().mean().item()
     top5_accuracy = (pred_top5 == true_labels.view(-1, 1)).float().sum(1).mean().item()
 
-    y_scores = []
-    for y_true, y_score in zip(true_labels.numpy(), pred_scores.numpy()):
-        y_scores.append(y_score[y_true])
-    auroc = roc_auc_score(true_labels.numpy(), np.array(y_scores), multi_class='ovr')
+    print(f'acc: {accuracy}\tprec1: {top1_accuracy}\tprec5: {top5_accuracy}\tauroc: {auroc_score}')
 
-    return accuracy, top1_accuracy, top5_accuracy, auroc
+    return accuracy, top1_accuracy, top5_accuracy, auroc_score
 
 
 def main():
     dir_path = "C:\\workspace\\deepfake-detection-challenge\\audio_resampled"
-    model_path = "./RAVDESS_bs_32_lr_0.04_ep_250_03-28 16 30 18.pth"
+    # model_path = "./RAVDESS_bs_32_lr_0.001_ep_1_03-29 15 13 17.pth"
+    model_path = None
     metadata = get_ravdess_metadata(dir_path)
     # generate_datasets(dir_path)
 
     # Datasets
-    image_transform = transforms.Compose([
+    transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
+        transforms.Normalize((0.5,), (0.5,))
     ])
 
-    train_data, test_data = np.split(np.array(metadata), [int(len(metadata) * 0.8)])
-    train_loader = torch.utils.data.DataLoader(RAVDESS(train_data, transform=image_transform),
+    train_loader = torch.utils.data.DataLoader(RAVDESS(metadata, transform=transform),
                                                batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
-    test_loader = torch.utils.data.DataLoader(RAVDESS(test_data, transform=image_transform),
+    test_loader = torch.utils.data.DataLoader(RAVDESS(metadata, transform=transform),
                                               batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
 
     # Model
-    if model_path is None:
-        model = ResNetModel().to(device)
-    else:
-        model = torch.load(model_path).to(device)
+    model = ResNetModel(num_classes=8).to(device)
+    if model_path is not None:
+        model.load_state_dict(torch.load(model_path))
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
@@ -255,10 +259,6 @@ def main():
 
     # Validation
     accuracy, top1_accuracy, top5_accuracy, auroc = evaluate(model=model, test_loader=test_loader)
-    print(f'Accuracy: {accuracy}')
-    print(f'Top-1 Accuracy: {top1_accuracy}')
-    print(f'Top-5 Accuracy: {top5_accuracy}')
-    print(f'AUROC: {auroc}')
 
 
 if __name__ == "__main__":
