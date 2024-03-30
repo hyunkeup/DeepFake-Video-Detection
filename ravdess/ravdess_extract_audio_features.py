@@ -1,6 +1,7 @@
 import datetime
 import glob
 import os
+import random
 
 import cv2
 import librosa
@@ -232,18 +233,19 @@ def main():
     # model_path = "./RAVDESS_bs_32_lr_0.001_ep_1_03-29 15 13 17.pth"
     model_path = None
     metadata = get_ravdess_metadata(dir_path)
+    random.shuffle(metadata)
     # generate_datasets(dir_path)
 
     # Datasets
     transform = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize((0.5,), (0.5,))
     ])
 
-    train_loader = torch.utils.data.DataLoader(RAVDESS(metadata, transform=transform),
+    train_data, test_data = np.split(np.array(metadata), [int(len(metadata) * 0.8)])
+    train_loader = torch.utils.data.DataLoader(RAVDESS(train_data, transform=transform),
                                                batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
-    test_loader = torch.utils.data.DataLoader(RAVDESS(metadata, transform=transform),
+    test_loader = torch.utils.data.DataLoader(RAVDESS(test_data, transform=transform),
                                               batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
 
     # Model
