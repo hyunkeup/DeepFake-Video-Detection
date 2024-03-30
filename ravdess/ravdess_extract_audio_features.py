@@ -11,7 +11,6 @@ import torch
 import torch.utils.data as data
 import torchvision
 import torchvision.transforms as transforms
-from PIL import Image
 from scipy.signal import resample
 from torch import nn, optim
 from torchmetrics.classification import AUROC
@@ -49,6 +48,28 @@ def audio_load(file_path):
         print(f"Error: {e}")
 
 
+def get_audio_features(file_path, min_duration=3):
+    # Load the audio file
+    audio, sr = audio_load(file_path)  # 3 seconds
+
+    # Padding or Cutting by min_duration
+    audio_length = min_duration * sr
+    if audio.shape[0] < min_duration * sr:
+        # Padding
+        audio = np.pad(audio, (0, audio_length - len(audio)), 'constant')
+    elif audio.shape[0] > audio_length:
+        # Cutting
+        audio = audio[:audio_length]
+
+    audio_frames = librosa.util.frame(audio, frame_length=sr, hop_length=sr)
+    audio_frames = np.transpose(audio_frames)
+    assert audio_frames.shape[0] == min_duration, f"The audio frames should have {min_duration} seconds duration."
+
+    # Extract audio features
+    audio_features = np.array([get_mfccs(y=audio_frame, sr=sr) for audio_frame in audio_frames])  # (3, 10, 87)
+    return audio_features
+
+
 def get_ravdess_metadata(dir_path):
     # https://www.kaggle.com/datasets/uwrfkaggler/ravdess-emotional-speech-audio/data
     """
@@ -75,7 +96,8 @@ def get_ravdess_metadata(dir_path):
             "label": int(filename.split(".")[0].split("-")[2]) - 1,
             "wav_file_path": wav_file,
             "image_file_path": os.path.join(directory_path, filename_without_extension + ".png"),
-            "np_file_path": os.path.join(directory_path, filename_without_extension + ".npy")
+            "audio_features_np_path": os.path.join(directory_path, filename_without_extension + "_af.npy"),
+            "image_np_path": os.path.join(directory_path, filename_without_extension + "_image.npy"),
         }
         metadata.append(data)
 
@@ -90,7 +112,8 @@ def generate_datasets(dir_path, min_duration=3):
     for data in tqdm(metadata):
         wav_file_path = data["wav_file_path"]
         image_file_path = data["image_file_path"]
-        np_file_path = data["np_file_path"]
+        audio_features_np_path = data["audio_features_np_path"]
+        image_np_path = data["image_np_path"]
 
         # Load the audio file
         audio, sr = audio_load(wav_file_path)  # 3 seconds
@@ -109,7 +132,8 @@ def generate_datasets(dir_path, min_duration=3):
         assert audio_frames.shape[0] == min_duration, f"The audio frames should have {min_duration} seconds duration."
 
         # Extract audio features
-        audio_features = [get_mfccs(y=audio_frame, sr=sr) for audio_frame in audio_frames]
+        audio_features = [get_mfccs(y=audio_frame, sr=sr) for audio_frame in audio_frames]  # (3, 10, 87)
+        np.save(audio_features_np_path, np.array(audio_features))
 
         # Plotting MFCC features
         plt.clf()
@@ -121,7 +145,7 @@ def generate_datasets(dir_path, min_duration=3):
         frame = cv2.imread(image_file_path)
         frame = cv2.resize(frame, (244, 244))
         cv2.imwrite(image_file_path, frame)
-        np.save(np_file_path, np.array(frame))
+        np.save(image_np_path, np.array(frame))
 
     print("=" * 50 + " Datasets are generated. " + "=" * 50)
 
@@ -141,12 +165,24 @@ class RAVDESS(data.Dataset):
         self.transform = transform
 
     def __getitem__(self, index):
-        x = np.load(self.data[index]["np_file_path"])
-        if self.transform is not None:
-            image = Image.fromarray(x)
-            x = self.transform(image)
+        # x = np.load(self.data[index]["image_np_path"])
+        # if self.transform is not None:
+        #     image = Image.fromarray(x)
+        #     x = self.transform(image)
+        # else:
+        #     x = x.transpose(2, 0, 1)
+        # y = self.data[index]["label"]
+        # return x, y
+
+        if os.path.exists(self.data[index]["audio_features_np_path"]):
+            x = np.load(self.data[index]["audio_features_np_path"])
         else:
-            x = x.transpose(2, 0, 1)
+            x = get_audio_features(file_path=self.data[index]["wav_file_path"])
+
+        if self.transform is not None:
+            x = self.transform(x)
+            x = x.permute(1, 2, 0)
+
         y = self.data[index]["label"]
         return x, y
 
@@ -159,6 +195,12 @@ def adjust_learning_rate(optimizer, epoch, learning_rate, lr_steps):
     lr_new = learning_rate * (0.1 ** (sum(epoch >= np.array(lr_steps))))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr_new
+
+
+def add_noise(x, noise_level=0.1):
+    noise = torch.randn_like(x) * noise_level
+    noisy_images = x + noise
+    return noisy_images
 
 
 def train(criterion, model, optimizer, train_loader):
@@ -174,6 +216,7 @@ def train(criterion, model, optimizer, train_loader):
         running_loss = 0.0
         for i, (x, y) in enumerate(tqdm(train_loader)):
             x, y = x.to(device), y.to(device)
+            # x = add_noise(x, noise_level=0.1)
 
             optimizer.zero_grad()
             outputs = model(x)
@@ -232,9 +275,9 @@ def main():
     dir_path = "C:\\workspace\\deepfake-detection-challenge\\audio_resampled"
     # model_path = "./RAVDESS_bs_32_lr_0.001_ep_1_03-29 15 13 17.pth"
     model_path = None
+    # generate_datasets(dir_path)
     metadata = get_ravdess_metadata(dir_path)
     random.shuffle(metadata)
-    # generate_datasets(dir_path)
 
     # Datasets
     transform = transforms.Compose([
